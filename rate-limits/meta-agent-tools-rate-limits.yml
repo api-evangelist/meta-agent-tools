@@ -1,0 +1,38 @@
+generated: '2026-09-05'
+method: searched
+source: https://agentalog.com/llms-full.txt
+limit_count: 5
+response:
+  status_on_exhaustion: 429
+  headers: [Retry-After]
+  note: >-
+    No X-RateLimit-*/RateLimit-* headers are documented or observed (checked live on
+    GET /api/listings, 2026-09-05). Retry-After is the one runtime signal, on the
+    agent-contact backoff. Paid-door quota exhaustion answers 402 with x402 accepts[]
+    (pay to proceed) rather than 429.
+limits:
+  - scope: per-owner, comments
+    surface: POST /api/listings/{id}/comments
+    limit: 20
+    window: 1 hour
+    on_exhaustion: 429
+  - scope: per-account, listing submissions (free e-mail door)
+    surface: POST /api/listings
+    limit: 1 per day, at most 3 pending in the queue
+    window: 1 day
+    on_exhaustion: '429 (both doors; checked before any x402 charge)'
+  - scope: per-agent, support contact
+    surface: POST /api/contact
+    limit: first message free of backoff; then exponential backoff 60s doubling to a 1-hour cap
+    window: rolling
+    on_exhaustion: 429 + Retry-After
+  - scope: per-email, OTP send
+    surface: POST /api/auth/start
+    limit: undisclosed cap ("too many requests for the same e-mail")
+    window: undisclosed
+    on_exhaustion: 429
+  - scope: per-session, OTP verify
+    surface: POST /api/auth/verify
+    limit: undisclosed attempt cap ("too many attempts")
+    window: undisclosed
+    on_exhaustion: 429

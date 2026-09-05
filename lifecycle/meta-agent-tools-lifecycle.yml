@@ -1,0 +1,22 @@
+generated: '2026-09-05'
+method: searched
+source: https://agentalog.com/llms-full.txt
+versioning:
+  scheme: unversioned single surface (OpenAPI info.version 1.0.0); the MCP subregistry path is pinned to spec v0.1 (/v0.1/servers)
+  current: '1.0.0'
+  deployed_commit_endpoint: https://agentalog.com/api/health
+  note: GET /api/health returns liveness plus the commit deployed right now.
+deprecation:
+  policy_url: null
+  sunset_header: false
+  note: No deprecation policy or Sunset/Deprecation (RFC 8594) header support is published.
+sla:
+  url: null
+  note: No SLA published.
+status_page: null
+status_note: >-
+  No status page found — /status answers 404 (probed 2026-09-05); GET /api/health is a
+  liveness endpoint, not a status page. GET /api/metrics exposes 7-day public metrics and
+  GET /api/fila the enrichment-queue snapshot, which is operational transparency but not a
+  status/uptime surface.
+deprecated_operations: []

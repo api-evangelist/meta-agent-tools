@@ -2,8 +2,10 @@ name: Meta Agent Tools
 description: >-
   A registry/catalog of MCP servers, agent skills and plugins. It aggregates MCP metadata from the Official MCP
   Registry, Smithery and Casdoor, and public skill dumps, exposing a REST/HTTP API, a hosted MCP server, an llms.txt
-  agent guide and a public OpenAPI 3.1 contract. Portuguese-language service based in Brazil.
+  agent guide and a public OpenAPI 3.1 contract. Portuguese-language service based in Brazil. Canonical host is
+  agentalog.com — the originally submitted classificado.app.br permanently redirects (301) every path there.
 url: https://raw.githubusercontent.com/api-evangelist/meta-agent-tools/refs/heads/main/apis.yml
+image: https://agentalog.com/icon.svg
 created: '2026-09-05'
 modified: '2026-09-05'
 specificationVersion: '0.21'
@@ -27,8 +29,8 @@ apis:
       REST/HTTP API for a registry of MCP servers, agent skills and plugins — public catalog search, publishing/editing
       listings, engagement (likes/comments/visits), accounts, MCP subregistry (Official Registry v0.1) and ops/admin
       routes. Bearer-token auth with guest, session, prepaid credit and admin tiers plus x402 agent micropayments.
-    humanURL: https://classificado.app.br/api/
-    baseURL: https://classificado.app.br
+    humanURL: https://agentalog.com/api/
+    baseURL: https://agentalog.com
     tags:
       - Developer Tools
       - API Registry
@@ -45,20 +47,83 @@ apis:
       - UGC
     properties:
       - type: OpenAPI
-        url: https://classificado.app.br/openapi.json
+        url: https://agentalog.com/openapi.json
+      - type: OpenAPI
+        url: openapi/meta-agent-tools-openapi.json
       - type: MCPServer
-        url: https://classificado.app.br/mcp
+        url: mcp/meta-agent-tools-mcp.yml
+      - type: ToolCrosswalk
+        url: mcp/meta-agent-tools-tool-crosswalk.yml
       - type: LLMsTxt
-        url: https://classificado.app.br/llms.txt
+        url: llms/meta-agent-tools-llms.txt
       - type: Documentation
-        url: https://classificado.app.br/llms-full.txt
+        url: https://agentalog.com/llms-full.txt
       - type: Documentation
-        url: https://classificado.app.br/okf/index.md
+        url: https://agentalog.com/okf/index.md
+      - type: APIReference
+        url: https://agentalog.com/llms-full.txt
+      - type: Overlay
+        url: overlays/meta-agent-tools-openapi-overlay.yaml
+      - type: ErrorCatalog
+        url: errors/meta-agent-tools-problem-types.yml
+      - type: DataModel
+        url: data-model/meta-agent-tools-data-model.yml
 maintainers:
   - FN: Meta Agent Tools
-    url: https://classificado.app.br/
+    email: contato@agentalog.com
+    url: https://agentalog.com/
 generated:
   by: apis.io/add
   model: claude-opus-4-8
   confidence: 97
   at: '2026-09-05T11:49:17.227Z'
+common:
+- type: AgenticAccess
+  url: agentic-access/meta-agent-tools-agentic-access.yml
+- type: VulnerabilityDisclosure
+  url: security/meta-agent-tools-vulnerability-disclosure.yml
+- type: DomainSecurity
+  url: security/meta-agent-tools-domain-security.yml
+- type: Authentication
+  url: authentication/meta-agent-tools-authentication.yml
+- type: Security
+  url: well-known/meta-agent-tools-security.txt
+- type: SecurityTxt
+  url: well-known/meta-agent-tools-security.txt
+- type: WellKnown
+  url: well-known/meta-agent-tools-well-known.yml
+- type: APICatalog
+  url: well-known/meta-agent-tools-api-catalog.json
+- type: Conformance
+  url: conformance/meta-agent-tools-conformance.yml
+- type: Conventions
+  url: conventions/meta-agent-tools-conventions.yml
+- type: Idempotency
+  url: conventions/meta-agent-tools-conventions.yml
+- type: Lifecycle
+  url: lifecycle/meta-agent-tools-lifecycle.yml
+- type: RateLimits
+  url: rate-limits/meta-agent-tools-rate-limits.yml
+- type: Plans
+  url: plans/meta-agent-tools-plans-pricing.yml
+- type: Pricing
+  url: https://agentalog.com/#precos
+- type: AgentSkill
+  url: skills/_index.yml
+- type: Website
+  url: https://agentalog.com/
+- type: TermsOfService
+  url: https://agentalog.com/terms
+- type: PrivacyPolicy
+  url: https://agentalog.com/privacy
+- type: Support
+  url: https://agentalog.com/sobre
+- type: GettingStarted
+  url: https://agentalog.com/como-anunciar
+- type: SignUp
+  url: https://agentalog.com/
+x-enrichment:
+  date: '2026-09-05'
+  status: enriched
+  artifacts_added: 24
+  pass: local-v3

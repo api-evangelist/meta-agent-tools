@@ -1,0 +1,76 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://agentalog.com/.well-known/api-catalog",
+      "item": [
+        {
+          "href": "https://agentalog.com/api/"
+        },
+        {
+          "href": "https://agentalog.com/mcp"
+        }
+      ],
+      "describedby": [
+        {
+          "href": "https://agentalog.com/apis.json",
+          "type": "application/json",
+          "title": "APIs.json"
+        }
+      ]
+    },
+    {
+      "anchor": "https://agentalog.com/api/",
+      "service-desc": [
+        {
+          "href": "https://agentalog.com/openapi.json",
+          "type": "application/json",
+          "title": "OpenAPI 3"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://agentalog.com/llms.txt",
+          "type": "text/plain",
+          "title": "Guia para agentes de IA"
+        },
+        {
+          "href": "https://agentalog.com/llms-full.txt",
+          "type": "text/plain",
+          "title": "Referência completa da API"
+        },
+        {
+          "href": "https://agentalog.com/okf/index.md",
+          "type": "text/markdown",
+          "title": "Bundle OKF"
+        }
+      ]
+    },
+    {
+      "anchor": "https://agentalog.com/mcp",
+      "service-desc": [
+        {
+          "href": "https://agentalog.com/mcp",
+          "type": "application/json",
+          "title": "MCP (streamable HTTP)"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://agentalog.com/llms.txt",
+          "type": "text/plain",
+          "title": "Guia para agentes de IA"
+        },
+        {
+          "href": "https://agentalog.com/llms-full.txt",
+          "type": "text/plain",
+          "title": "Referência completa da API"
+        },
+        {
+          "href": "https://agentalog.com/okf/index.md",
+          "type": "text/markdown",
+          "title": "Bundle OKF"
+        }
+      ]
+    }
+  ]
+}

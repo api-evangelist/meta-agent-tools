@@ -1,0 +1,73 @@
+{
+  "name": "Meta Agent Tools",
+  "description": "Search and filter thousands of MCP servers, agent skills and plugins. Filter by transport, package registry, publisher and topic.",
+  "image": "https://agentalog.com/icon.svg",
+  "url": "https://agentalog.com/apis.json",
+  "tags": [
+    "Registry of MCP servers, skills and plugins",
+    "Filter by transport, registry, publisher and topic",
+    "Likes, comments and visit tracking",
+    "Publish and edit your own listings",
+    "Agent-first HTTP API with x402 billing",
+    "MCP server for agents"
+  ],
+  "created": "2026-09-05",
+  "modified": "2026-09-05",
+  "specificationVersion": "0.19",
+  "apis": [
+    {
+      "name": "Meta Agent Tools",
+      "description": "Search and filter thousands of MCP servers, agent skills and plugins. Filter by transport, package registry, publisher and topic.",
+      "image": "https://agentalog.com/icon.svg",
+      "humanURL": "https://agentalog.com/",
+      "baseURL": "https://agentalog.com/api/",
+      "tags": [
+        "Registry of MCP servers, skills and plugins",
+        "Filter by transport, registry, publisher and topic",
+        "Likes, comments and visit tracking",
+        "Publish and edit your own listings",
+        "Agent-first HTTP API with x402 billing",
+        "MCP server for agents"
+      ],
+      "properties": [
+        {
+          "type": "OpenAPI",
+          "url": "https://agentalog.com/openapi.json"
+        },
+        {
+          "type": "Documentation",
+          "url": "https://agentalog.com/llms-full.txt"
+        },
+        {
+          "type": "x-llms-txt",
+          "url": "https://agentalog.com/llms.txt"
+        },
+        {
+          "type": "x-mcp",
+          "url": "https://agentalog.com/mcp"
+        },
+        {
+          "type": "x-api-catalog",
+          "url": "https://agentalog.com/.well-known/api-catalog"
+        },
+        {
+          "type": "x-okf",
+          "url": "https://agentalog.com/okf/index.md"
+        }
+      ],
+      "contact": [
+        {
+          "FN": "Meta Agent Tools",
+          "email": "contato@agentalog.com"
+        }
+      ]
+    }
+  ],
+  "include": [],
+  "maintainers": [
+    {
+      "FN": "Meta Agent Tools",
+      "email": "contato@agentalog.com"
+    }
+  ]
+}

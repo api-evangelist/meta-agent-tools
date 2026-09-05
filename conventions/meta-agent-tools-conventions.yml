@@ -1,0 +1,79 @@
+generated: '2026-09-05'
+method: searched
+source: https://agentalog.com/llms-full.txt
+docs: https://agentalog.com/api/
+cross_links:
+  errors: errors/meta-agent-tools-problem-types.yml
+  authentication: authentication/meta-agent-tools-authentication.yml
+  lifecycle: lifecycle/meta-agent-tools-lifecycle.yml
+  rate_limits: rate-limits/meta-agent-tools-rate-limits.yml
+authentication:
+  style: bearer tokens with kind prefixes (mr_ guest, sess_ session, cred_ prepaid credit) plus x402 X-PAYMENT for agents
+  docs: https://agentalog.com/api/
+pagination:
+  styles:
+    - surface: GET /api/listings (public mosaic)
+      style: offset
+      params: [limit, offset]
+      response_fields: [items, limit, offset, next_offset, low_count]
+      note: 'No total on purpose: the provider documents that counting tens of thousands per search would be expensive without changing any decision. next_offset is null on the last page.'
+    - surface: GET /v0.1/servers (MCP subregistry)
+      style: cursor
+      params: [limit, cursor]
+      response_fields: [servers, metadata.next_cursor, metadata.count]
+      note: Official MCP Registry spec v0.1 format — opaque cursor from metadata.next_cursor.
+error_envelope:
+  shape: '{ ok: false, error: <slug>, message: <pt-BR text>, api_index }'
+  format: vendor JSON, not RFC 9457
+  observed: 'GET /api/listings/{id} with unknown id -> 404 {"ok":false,"error":"not_found",...} (2026-09-05)'
+rate_limit_signaling:
+  status: 429
+  headers: [Retry-After]
+  note: >-
+    No X-RateLimit-* headers. Agent-contact backoff (60s doubling to a 1-hour cap) is
+    announced in Retry-After. Quota exhaustion on paid-door surfaces answers 402 with x402
+    accepts[] rather than 429.
+versioning:
+  api: unversioned single surface; GET /api/health returns the deployed commit
+  subregistry: /v0.1/servers pinned to Official MCP Registry spec v0.1
+request_tracing:
+  documented: none (Cloudflare cf-ray only, infrastructure-level)
+field_slicing:
+  note: llms-full.txt supports ?prefix=/api/ to return only one branch of the reference
+idempotency:
+  coverage: partial
+  scope:
+    - like_listing
+    - delete_api_listings_by_id_like
+  mechanism: natural (state-based), no Idempotency-Key header
+  docs: https://agentalog.com/llms.txt
+  note: >-
+    The provider documents that repeat likes do not add up ("the counter counts people") and
+    unlike is a stable inverse — replay-safe by design on the engagement surface. No
+    idempotency-key mechanism exists for the paid writes (create_listing, contact,
+    post_api_credito); their guard is sequencing instead: validation (400) and quota (429)
+    run BEFORE the 402 charge, and a settled-payment/failed-write answers 502 with a
+    transaction id for manual reconciliation.
+reversibility:
+  grade: documented
+  writes:
+    - operation: like_listing
+      reversal: delete_api_listings_by_id_like
+      window: unstated ("gives the point back to the public counter")
+      docs: https://agentalog.com/llms.txt
+    - operation: post_api_listings_by_id_comments
+      reversal: delete_api_comments_by_id
+      window: unstated (own comments only; someone else's answers 404)
+      docs: https://agentalog.com/llms.txt
+    - operation: create_listing
+      reversal: patch_api_listings_by_id (edit; changing the URL re-queues) — no documented delete
+      window: unstated
+      docs: https://agentalog.com/llms-full.txt
+    - operation: post_api_credito
+      reversal: none documented — prepaid credit top-up (x402 on-chain USDC) has no published refund path
+      window: none stated
+      docs: https://agentalog.com/llms-full.txt
+  note: >-
+    Reversal paths exist and are documented for engagement writes, but no reversal WINDOW is
+    stated anywhere, so the grade stays documented, not verified. x402 payments themselves
+    are not documented as refundable.

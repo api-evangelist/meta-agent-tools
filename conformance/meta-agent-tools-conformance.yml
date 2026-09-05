@@ -1,0 +1,53 @@
+generated: '2026-09-05'
+method: searched
+source: https://agentalog.com/.well-known/api-catalog
+standards:
+  - id: rfc9727-api-catalog
+    conforms: true
+    evidence: https://agentalog.com/.well-known/api-catalog — HTTP 200, parses as a linkset (application/linkset+json) anchoring the API, the MCP endpoint and the APIs.json (fetched 2026-09-05)
+  - id: rfc9116-security-txt
+    conforms: true
+    evidence: https://agentalog.com/.well-known/security.txt — HTTP 200 with Contact, Expires, Preferred-Languages and Canonical fields
+  - id: apis-json-0.19
+    conforms: true
+    evidence: https://agentalog.com/apis.json (and /.well-known/apis.json) — HTTP 200, specificationVersion 0.19 with an apis[] array
+  - id: openapi-3.1
+    conforms: true
+    evidence: https://agentalog.com/openapi.json — HTTP 200, openapi 3.1.0 with 35 paths / 42 operations, all carrying operationIds
+  - id: mcp-streamable-http
+    conforms: true
+    evidence: POST https://agentalog.com/mcp tools/list — HTTP 200 JSON-RPC 2.0, protocol_version 2024-11-05, 12 tools with inputSchema
+  - id: mcp-official-registry-v0.1
+    conforms: true
+    domain_standard: true
+    evidence: >-
+      https://agentalog.com/v0.1/servers — HTTP 200 in the Official MCP Registry spec v0.1
+      subregistry shape (servers[] of {server,_meta}, metadata.count + metadata.nextCursor);
+      plus /.well-known/mcp-registry-auth serving the registry's ed25519 domain-verification
+      key (v=MCPv1), mirrored in the classificado.app.br DNS TXT record. This is the domain
+      standard for the provider's own market (MCP server registries) declared by the
+      contract surface itself, not prose.
+  - id: x402
+    conforms: true
+    evidence: >-
+      https://agentalog.com/api/billing — HTTP 200 live x402 config (network base, chain 8453,
+      USDC, facilitator payai.network); OpenAPI 402 responses document accepts[] + X-PAYMENT
+      retry on create_listing, contact and credito.
+  - id: llms-txt
+    conforms: true
+    evidence: https://agentalog.com/llms.txt — HTTP 200, llms.txt-format agent guide (H1 + summary + endpoint link lists); llms-full.txt reference also served
+  - id: rss-2.0
+    conforms: true
+    evidence: https://agentalog.com/feed.xml — HTTP 200 RSS 2.0 of recently published listings
+  - id: json-feed-1.1
+    conforms: true
+    evidence: https://agentalog.com/feed.json — HTTP 200 JSON Feed 1.1, same stream as the RSS
+  - id: rfc9457-problem-details
+    conforms: false
+    evidence: error responses use a vendor JSON envelope ({ok:false, error, message}), not application/problem+json
+  - id: oauth2
+    conforms: false
+    evidence: no oauth2 securityScheme — bearer tokens (guest/session/credit) and x402 only
+  - id: a2a-agent-card
+    conforms: false
+    evidence: /.well-known/agent-card.json and /.well-known/agent.json both 404 on agentalog.com (probed 2026-09-05)

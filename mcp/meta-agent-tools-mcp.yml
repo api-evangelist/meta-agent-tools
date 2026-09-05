@@ -1,0 +1,156 @@
+generated: '2026-09-05'
+method: searched
+status: published
+source: https://agentalog.com/mcp
+note: Hosted first-party MCP server, no install. GET /mcp returns a server card (transport streamable-http,
+  protocol 2024-11-05, server "Meta Agent Tools", 12 tools); POST tools/list answered 200 unauthenticated
+  and returned the 12 tools with inputSchema, captured verbatim below. Every tool is a call on the same
+  REST API (see the tool crosswalk). Credentials (X-Guest-Token, Authorization, X-PAYMENT) are passed
+  through as headers; paid actions surface a 402 with x402 accepts[] inside the tool result.
+deployment:
+  mode: remote
+  endpoint: https://agentalog.com/mcp
+  auth: none
+  verified: probed
+server:
+  name: Meta Agent Tools
+  version: 2d690e87
+  transport: streamable-http
+  protocol_version: '2024-11-05'
+  url: https://agentalog.com/mcp
+x-evidence:
+  fetched: '2026-09-05'
+  card:
+    url: https://agentalog.com/mcp
+    http_status: 200
+  tools_list:
+    url: https://agentalog.com/mcp
+    method: tools/list
+    http_status: 200
+    tool_count: 12
+tools:
+- name: api_index
+  description: Index of the Mural API.
+  inputSchema:
+    type: object
+    properties: {}
+- name: health
+  description: Liveness.
+  inputSchema:
+    type: object
+    properties: {}
+- name: create_guest
+  description: Creates a guest mr_…
+  inputSchema:
+    type: object
+    properties: {}
+- name: list_listings
+  description: Public mosaic of live MCP servers, skills and plugins.
+  inputSchema:
+    type: object
+    properties:
+      q:
+        type: string
+      kind:
+        type: string
+      category:
+        type: string
+      sort:
+        type: string
+      low:
+        type: string
+- name: list_mcp_servers
+  description: MCP subregistry (GET /v0.1/servers). Only live kind=mcp.
+  inputSchema:
+    type: object
+    properties:
+      search:
+        type: string
+      cursor:
+        type: string
+      limit:
+        type: number
+- name: get_listing
+  description: One listing's page.
+  inputSchema:
+    type: object
+    properties:
+      id:
+        type: string
+    required:
+    - id
+- name: go_listing
+  description: 302 hop to the listing's origin (counts a visit).
+  inputSchema:
+    type: object
+    properties:
+      id:
+        type: string
+    required:
+    - id
+- name: like_listing
+  description: Reversible like.
+  inputSchema:
+    type: object
+    properties:
+      id:
+        type: string
+      guest_token:
+        type: string
+    required:
+    - id
+    - guest_token
+- name: list_comments
+  description: Comments on a live listing.
+  inputSchema:
+    type: object
+    properties:
+      id:
+        type: string
+    required:
+    - id
+- name: create_listing
+  description: Registers an MCP server, skill or plugin (human session free; agent without session = 402
+    $0.10).
+  inputSchema:
+    type: object
+    properties:
+      kind:
+        type: string
+      category:
+        type: string
+      name:
+        type: string
+      tagline:
+        type: string
+      body:
+        type: string
+      url:
+        type: string
+      session_token:
+        type: string
+    required:
+    - kind
+    - url
+- name: billing
+  description: x402 prices and network.
+  inputSchema:
+    type: object
+    properties: {}
+- name: contact
+  description: 'Agent contact $0.10 x402. After the 1st message: 429 + Retry-After (backoff).'
+  inputSchema:
+    type: object
+    properties:
+      name:
+        type: string
+      email:
+        type: string
+      message:
+        type: string
+      form_ts:
+        type: number
+    required:
+    - name
+    - email
+    - message

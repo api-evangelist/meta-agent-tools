@@ -1,0 +1,54 @@
+generated: '2026-09-05'
+method: searched
+source: openapi/meta-agent-tools-openapi.json
+docs: https://agentalog.com/api/
+summary:
+  types:
+  - http
+  bearer_token_kinds:
+  - guest
+  - session
+  - prepaid-credit
+  - operator-token
+  agent_payment: x402
+schemes:
+- name: bearerAuth
+  type: http
+  scheme: bearer
+  description: Guest mr_…, session sess_… or ADMIN_TOKEN.
+  sources:
+  - openapi/meta-agent-tools-openapi.json
+model:
+  note: >-
+    The self-describing index at https://agentalog.com/api/ documents the full tier model
+    behind the single bearer scheme (fetched 2026-09-05, HTTP 200). Tokens are prefixed by
+    kind and several headers are accepted alongside Authorization.
+  tiers:
+  - name: none
+    description: Public, no credential.
+  - name: guest
+    description: >-
+      Guest token from POST /api/guest, sent as X-Guest-Token mr_… or Authorization Bearer
+      mr_… — the identity that likes, comments and visits. A sess_… session also works.
+  - name: session
+    description: 'Session via e-mail OTP: Authorization: Bearer sess_… (POST /api/auth/start + /api/auth/verify).'
+  - name: session_ou_x402
+    description: >-
+      Two doors to the same action — a human with a sess_… session (free, within quota) or an
+      agent paying x402 via the X-PAYMENT header ($0.10 USDC on Base). A guest token neither
+      grants nor blocks the paid path.
+  - name: credito
+    description: >-
+      Prepaid credit token as Authorization Bearer cred_… (or X-Credito header). A bearer of
+      balance, not an account — topped up once with x402 via POST /api/credito.
+  - name: token
+    description: Operator ADMIN_TOKEN or METRICS_TOKEN as Bearer; load routes also accept the enricher credential.
+  token_prefixes:
+    guest: mr_
+    session: sess_
+    credit: cred_
+  headers:
+  - Authorization
+  - X-Guest-Token
+  - X-Credito
+  - X-PAYMENT

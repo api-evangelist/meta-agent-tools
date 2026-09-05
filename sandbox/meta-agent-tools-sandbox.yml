@@ -1,0 +1,18 @@
+generated: '2026-09-05'
+method: searched
+source: https://agentalog.com/llms-full.txt
+note: >-
+  The provider documents a staging seam for its x402 payment loop rather than a separate
+  sandbox host. GET /api/billing exposes the mode: `homolog` (bool) — "staging seam on: the
+  loop can be closed without spending USDC"; `dev_gate` — how dev mode is unlocked when it
+  exists; `faucet` — a test-USDC faucet, only on base-sepolia. The live deploy answers
+  homolog: false, mode: live, faucet: null (probed 2026-09-05), so the test seam is
+  documented but not publicly enabled. The CORS surface allowlists X-X402-Homolog and
+  X-X402-Dev request headers for that mode. No magic test values, test accounts or test
+  tokens are published.
+test_vs_live:
+  discriminator: GET /api/billing -> mode (live) + homolog (bool)
+  test_network: base-sepolia (with faucet, when homolog is on)
+  live_network: base (chain 8453, USDC)
+  headers: [X-X402-Homolog, X-X402-Dev]
+test_values: []

@@ -1,0 +1,20 @@
+generated: '2026-09-05'
+method: generated
+note: >-
+  Generated from the provider's OpenAPI + llms.txt; every operationId verified in
+  openapi/meta-agent-tools-openapi.json. The provider maintains its own in-repo skill
+  (.agents/skills/mural/SKILL.md per llms.txt) but does not serve it over HTTP (404), so
+  these are API Evangelist-authored, not provider-published.
+skills:
+  - file: meta-agent-tools-search-the-catalog.md
+    name: Search the Meta Agent Tools catalog
+    api: openapi/meta-agent-tools-openapi.json
+    operations: [api_index, get_api_facets, list_listings, list_mcp_servers, get_listing, list_comments, go_listing]
+  - file: meta-agent-tools-publish-a-listing.md
+    name: Publish a listing (agent x402 door or human OTP door)
+    api: openapi/meta-agent-tools-openapi.json
+    operations: [billing, create_listing, post_api_auth_start, post_api_auth_verify, patch_api_listings_by_id, get_api_me_listings, post_api_credito]
+  - file: meta-agent-tools-engage-with-a-listing.md
+    name: Like, comment and visit as a guest
+    api: openapi/meta-agent-tools-openapi.json
+    operations: [create_guest, like_listing, delete_api_listings_by_id_like, post_api_listings_by_id_comments, delete_api_comments_by_id, go_listing]

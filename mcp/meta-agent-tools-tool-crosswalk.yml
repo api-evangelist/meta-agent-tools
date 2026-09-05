@@ -1,0 +1,101 @@
+generated: '2026-09-05'
+method: derived
+source: mcp/meta-agent-tools-mcp.yml + openapi/meta-agent-tools-openapi.json
+note: >-
+  The provider states in llms.txt that "every tool is a call on this same API — the MCP has
+  no backend of its own", and each of the 12 MCP tool names matches an OpenAPI operationId
+  verbatim, so every binding is exact. The live tools/list was open (200, unauthenticated),
+  so tool inputSchemas were read from the server itself, not guessed.
+surfaces:
+  openapi: openapi/meta-agent-tools-openapi.json
+  mcp:
+    url: https://agentalog.com/mcp
+    gated: false
+  graphql: null
+crosswalk:
+  - tool: api_index
+    category: discovery
+    rest: [api_index]
+    binding: rest
+    confidence: high
+  - tool: health
+    category: ops
+    rest: [health]
+    binding: rest
+    confidence: high
+  - tool: create_guest
+    category: identity
+    rest: [create_guest]
+    binding: rest
+    confidence: high
+  - tool: list_listings
+    category: catalog-search
+    rest: [list_listings]
+    binding: rest
+    confidence: high
+  - tool: list_mcp_servers
+    category: catalog-search
+    rest: [list_mcp_servers]
+    binding: rest
+    confidence: high
+  - tool: get_listing
+    category: catalog-read
+    rest: [get_listing]
+    binding: rest
+    confidence: high
+  - tool: go_listing
+    category: catalog-read
+    rest: [go_listing]
+    binding: rest
+    confidence: high
+  - tool: like_listing
+    category: engagement
+    rest: [like_listing]
+    binding: rest
+    confidence: high
+  - tool: list_comments
+    category: engagement
+    rest: [list_comments]
+    binding: rest
+    confidence: high
+  - tool: create_listing
+    category: publishing
+    rest: [create_listing]
+    binding: rest
+    confidence: high
+    note: paid door for agents — 402 with x402 accepts[] surfaces inside the tool result
+  - tool: billing
+    category: commerce
+    rest: [billing]
+    binding: rest
+    confidence: high
+  - tool: contact
+    category: support
+    rest: [contact]
+    binding: rest
+    confidence: high
+    note: $0.10 x402 per agent message; backoff after the first (429 + Retry-After)
+mcp_only: []
+rest_only:
+  - capability: machine discovery
+    operations: [get_okf_by_arquivo, get_well_known_by_arquivo, get_apis_json, get_feed_xml, get_feed_json]
+  - capability: catalog facets
+    operations: [get_api_facets]
+  - capability: engagement writes not exposed as tools
+    operations: [post_api_listings_by_id_comments, delete_api_comments_by_id, delete_api_listings_by_id_like, post_api_visit]
+  - capability: account / session (e-mail OTP)
+    operations: [post_api_auth_start, post_api_auth_verify, post_api_auth_claim, post_api_auth_logout, get_api_me, get_api_me_listings, get_api_me_ui, put_api_me_ui, patch_api_listings_by_id]
+  - capability: prepaid credit
+    operations: [post_api_credito, get_api_credito]
+  - capability: public telemetry
+    operations: [get_api_metrics, get_api_fila]
+  - capability: operator / admin (token-gated)
+    operations: [post_api_admin_fila, post_api_admin_repos, get_api_admin_listings, post_api_admin_listings_by_id, get_api_admin_carga, post_api_admin_carga]
+  - capability: MCP transport itself
+    operations: [post_mcp]
+coverage:
+  tools_named: 12
+  tools_bound: 12
+  mcp_only: 0
+  rest_operations_total: 42
+  rest_operations_with_tool: 12

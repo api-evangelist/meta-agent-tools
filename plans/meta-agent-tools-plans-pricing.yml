@@ -1,0 +1,35 @@
+generated: '2026-09-05'
+method: probed
+source: https://agentalog.com/api/billing
+docs: https://agentalog.com/llms.txt
+plan_count: 3
+note: >-
+  Pricing is machine-readable at GET /api/billing (HTTP 200, 2026-09-05) — live x402 config
+  on Base (chain 8453), asset USDC, facilitator facilitator.payai.network — and the quota
+  model is stated in llms.txt. There are no subscription tiers: the model is free catalog
+  reads plus per-action agent micropayments and an optional prepaid credit token.
+plans:
+  - name: Free (read + engage)
+    price: 0
+    currency: USD
+    billing_period: none
+    included: >-
+      Catalog search (mosaic, listing pages, comments, facets, MCP subregistry), guest
+      like/comment/visit, machine discovery (openapi.json, llms.txt, apis.json, OKF, feeds),
+      MCP server calls — no quota.
+  - name: Free (human publisher)
+    price: 0
+    currency: USD
+    billing_period: none
+    included: Register listings with an e-mail (OTP) session.
+    limits: 1 listing per day, at most 3 pending in the moderation queue.
+  - name: Agent pay-per-action (x402)
+    price: 0.10
+    currency: USDC (Base)
+    billing_period: per action
+    included: >-
+      Publishing a listing as an agent ($0.10) and agent support contact ($0.10) — 402 with
+      accepts[], pay and repeat with X-PAYMENT. Prepaid credit alternative: POST
+      /api/credito?usd=10 buys a cred_… bearer token that debits on any paid call
+      (packages 1, 5, 10 or 25 USD).
+    overage: none — flat per-action price

@@ -1,0 +1,57 @@
+generated: '2026-09-05'
+method: derived
+source: openapi/meta-agent-tools-openapi.json
+docs: https://agentalog.com/llms-full.txt
+format: vendor-envelope
+envelope:
+  note: >-
+    Errors are a JSON object, not RFC 9457 problem+json. Observed live on
+    GET /api/listings/{id} with an unknown id (HTTP 404, fetched 2026-09-05).
+  shape:
+    ok: false
+    error: machine slug (e.g. not_found)
+    message: human text (Portuguese)
+    api_index: https://agentalog.com/api/
+problems:
+  - status: 400
+    title: Invalid request body
+    detail: >-
+      Required field missing, invalid field, body that is not JSON, malformed e-mail, empty or
+      too-long text, kind/url missing or a URL that does not answer. Validation runs BEFORE any
+      x402 charge, so a refused body never settles a payment.
+    source_operations: [create_listing, post_api_auth_start, post_api_auth_verify, post_api_listings_by_id_comments, put_api_me_ui, post_api_credito, contact]
+  - status: 401
+    title: Missing or invalid credential
+    detail: No credential, or an invalid one — guest mr_…, session sess_…, credit cred_… or operator token, per the endpoint's auth tier.
+    source_operations: [get_api_me, get_api_me_listings, patch_api_listings_by_id, post_api_auth_claim, post_api_auth_logout, get_api_admin_listings]
+  - status: 402
+    title: Payment required (x402)
+    detail: >-
+      Quota exceeded or agent door unpaid. The body carries accepts[] (x402, USDC on Base) —
+      pay and repeat the same call with the X-PAYMENT header.
+    source_operations: [create_listing, contact, post_api_credito]
+  - status: 404
+    title: Not found (deliberately ambiguous)
+    detail: >-
+      The resource does not exist, is not live, or is not yours — the API does not tell those
+      apart on purpose (someone else's comment answers 404, not 403).
+    source_operations: [get_listing, go_listing, list_comments, delete_api_comments_by_id, get_okf_by_arquivo, get_well_known_by_arquivo]
+  - status: 405
+    title: Method not allowed
+    detail: Method other than GET or PUT on /api/me/ui.
+    source_operations: [get_api_me_ui, put_api_me_ui]
+  - status: 413
+    title: Payload too large
+    detail: UI preferences above the 8 KB cap (error slug `grande`).
+    source_operations: [put_api_me_ui]
+  - status: 429
+    title: Rate limited
+    detail: >-
+      Per-surface caps — 20 comments/hour, 1 listing/day (max 3 pending, checked before
+      charging), OTP e-mail and verify attempt caps, and agent-contact backoff announced in
+      Retry-After.
+    source_operations: [post_api_listings_by_id_comments, create_listing, post_api_auth_start, post_api_auth_verify, contact]
+  - status: 502
+    title: Payment settled but the write failed
+    detail: The body carries `transaction` — keep it and talk to support for reconciliation.
+    source_operations: [create_listing, contact, post_api_credito]

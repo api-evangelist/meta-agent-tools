@@ -1,0 +1,61 @@
+generated: '2026-09-05'
+method: searched
+source: https://agentalog.com/.well-known/
+note: >-
+  agentalog.com is the canonical host — classificado.app.br (the submitted domain) answers
+  301 to agentalog.com for every path, so its rows record the redirect, not an absence.
+  Negative control /.well-known/mat-negative-control-7c91ab2e.json returned 404 on
+  agentalog.com (path_echo_control: passed). The host also serves the non-standard
+  /.well-known/mcp-registry-auth (the Official MCP Registry ed25519 domain-verification
+  key), saved verbatim. /apis.json is also served at the domain root (primary location)
+  and /.well-known/apis.json — both parse as APIs.json 0.19 with an apis[] array.
+path_echo_control: passed
+hosts:
+  - host: https://agentalog.com
+    documents:
+      - path: /.well-known/security.txt
+        status: 200
+        file: meta-agent-tools-security.txt
+      - path: /.well-known/openid-configuration
+        status: 404
+      - path: /.well-known/oauth-authorization-server
+        status: 404
+      - path: /.well-known/oauth-protected-resource
+        status: 404
+      - path: /.well-known/api-catalog
+        status: 200
+        file: meta-agent-tools-api-catalog.json
+      - path: /.well-known/ai-plugin.json
+        status: 404
+      - path: /.well-known/ucp.json
+        status: 404
+      - path: /.well-known/acp.json
+        status: 404
+      - path: /.well-known/aauth-resource.json
+        status: 404
+      - path: /.well-known/apis.json
+        status: 200
+        file: meta-agent-tools-apis-json.json
+      - path: /apis.json
+        status: 200
+        file: meta-agent-tools-apis-json.json
+      - path: /.well-known/mcp-registry-auth
+        status: 200
+        file: meta-agent-tools-mcp-registry-auth.txt
+      - path: /.well-known/agent-card.json
+        status: 404
+      - path: /.well-known/agent.json
+        status: 404
+  - host: https://classificado.app.br
+    note: legacy domain; every path 301s to the same path on agentalog.com
+    documents:
+      - path: /.well-known/security.txt
+        status: 301
+      - path: /.well-known/api-catalog
+        status: 301
+      - path: /.well-known/apis.json
+        status: 301
+      - path: /.well-known/agent-card.json
+        status: 301
+      - path: /.well-known/agent.json
+        status: 301

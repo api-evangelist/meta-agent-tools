@@ -1,0 +1,80 @@
+# Meta Agent Tools
+
+Meta Agent Tools is a registry of MCP servers, Agent Skills and plugins.
+The public mosaic only shows `live` listings. Community submissions are born `pending`.
+MCP metadata comes from the Official MCP Registry (CC0), Smithery's public list and Casdoor. Skills also come in from public dumps (dmgrok, Claude Code Templates and majiayu000 — the last one only reaches the mosaic with a clear license and 10+ stars; the rest shows up in search). Gemini CLI extensions come from geminicli.com/extensions.json. We are none of them.
+The hop `GET /api/go/:id` counts one visit per identity per day and redirects. We host no files.
+An agent registers with x402 $0.10. A human registers with e-mail (OTP).
+
+## Discovery
+
+- Index: https://agentalog.com/api/
+- OpenAPI: https://agentalog.com/openapi.json
+- UI: https://agentalog.com/
+
+## Main endpoints
+
+- `GET /okf/:arquivo` — OKF bundle (Open Knowledge Format v0.1): markdown with frontmatter so an agent reads the whole product without parsing HTML. (auth: none)
+- `GET /.well-known/:arquivo` — Machine discovery before the home page: `api-catalog` (RFC 9727, a linkset with the API and the MCP), `security.txt` (RFC 9116) and `mcp-registry-auth` (the official MCP registry key). (auth: none)
+- `GET /apis.json` — APIs.json (apisjson.org, 0.19): the index APIs.io harvests — the API, the MCP, OpenAPI, guide and OKF bundle in one file. Also at `/.well-known/apis.json`. (auth: none)
+- `GET /feed.xml` — RSS 2.0 of the most recently published listings. (auth: none)
+- `GET /feed.json` — JSON Feed 1.1 of the most recently published listings — the same stream as the RSS. (auth: none)
+- `POST /mcp` — MCP server over HTTP (Streamable HTTP, JSON-RPC 2.0) — plugs into the client with nothing to install. (auth: none)
+- `POST /api/guest` — Creates a guest `mr_…` — it is the identity that likes, comments and visits. (auth: none)
+- `GET /api/listings` — The public mosaic: paginated search of the catalog's live listings. (auth: none)
+- `GET /api/facets` — The whole catalog's counts by kind, provenance, category and repository state. (auth: none)
+- `GET /v0.1/servers` — MCP subregistry in the Official Registry format (spec v0.1), cursor-paginated. (auth: none)
+- `GET /api/listings/:id` — One listing's page. The owner sees their own even when pending or hidden. (auth: none)
+- `GET /api/go/:id` — Hop to the listing's URL: redirects and counts the visit. (auth: none)
+- `GET /api/listings/:id/comments` — Public comments on a live listing. (auth: none)
+- `POST /api/listings/:id/comments` — Writes a comment on the listing. Cap of 20 per hour per owner. (auth: guest)
+- `DELETE /api/comments/:id` — Deletes a comment of yours. Someone else's comment answers 404, not 403. (auth: guest)
+- `POST /api/listings/:id/like` — Likes the listing. Calling again does not add up: the counter counts people. (auth: guest)
+- `DELETE /api/listings/:id/like` — Unlikes and gives the point back to the public counter. (auth: guest)
+- `POST /api/listings` — Registers an MCP server, a skill or a plugin in the catalog. It comes in as `pending`. (auth: session_ou_x402)
+- `PATCH /api/listings/:id` — Edits a listing of yours. Changing the URL sends it back to the queue. (auth: session)
+- `GET /api/me/listings` — The owner's listings in any state, including pending and hidden. (auth: session)
+- `GET /api/me` — The session's account and, for the admin, the load state. (auth: session)
+- `GET /api/me/ui` — The owner's screen preferences: search, filter, sort and theme. (auth: session)
+- `PUT /api/me/ui` — Stores the owner's screen preferences, replacing the previous ones. (auth: session)
+- `POST /api/auth/start` — Sends the 6-digit code by e-mail to create the account or sign in to it. (auth: none)
+- `POST /api/auth/verify` — Exchanges the code for a `sess_…` session. (auth: none)
+- `POST /api/auth/claim` — Ties a guest to the account: its likes and comments become the account's. (auth: session)
+- `POST /api/auth/logout` — Invalidates the current session. (auth: session)
+- `GET /api/billing` — x402 configuration in force and the agent prices for contact and publishing. (auth: none)
+- `POST /api/contact` — Talks to support: a human solves Turnstile, an agent pays $0.10 in x402. (auth: none)
+- `POST /api/visit` — Ping from the interface that increments the day's visits. Agents need not call it. (auth: none)
+- `GET /api/metrics` — Metrics of the last 7 days. With the operator token, includes payments. (auth: none)
+- `GET /api/fila` — The public snapshot of the enrichment queue: how much of the catalog has been checked. (auth: none)
+- `POST /api/admin/fila` — The enrichment robot pushes the snapshot of its own queue here. (auth: token)
+- `POST /api/admin/repos` — The enricher writes here what it found out about a repository: stars, forks, state. (auth: token)
+- `GET /api/admin/listings` — The moderation queue. Without a filter, brings what is pending. (auth: token)
+- `POST /api/admin/listings/:id` — Decides the fate of a listing in the queue: approve, hide or block. (auth: token)
+- `GET /api/admin/carga` — State of the catalog's load sources: last batch, count and failures. (auth: token)
+- `POST /api/admin/carga` — Triggers a load batch or marks a failure alert as seen. (auth: token)
+- `POST /api/credito` — Top up prepaid credit: pay once with x402 and get the token that debits on any API of the house. (auth: none)
+- `GET /api/credito` — Credit balance and statement — the latest movements, without returning the token. (auth: credito)
+
+## Quota
+
+- Free: mosaic, listing page and comments (`GET /api/listings`) — no quota.
+- Free: like, comment and hop with a guest token — no quota.
+- Free: register with an e-mail account — 1 per day, max. 3 in the queue.
+- Paid: register as an agent (with or without a guest token) — **$0.10** USDC via x402.
+- Paid: agent contact — **$0.10** USDC via x402.
+
+Publishing without an e-mail session answers **402** with `accepts[]` (x402, USDC on Base). Pay and repeat the same call with `X-PAYMENT`. A guest token does NOT remove the option to pay.
+
+Numbers in force: https://agentalog.com/api/billing
+
+## MCP
+
+- **Endpoint:** `POST https://agentalog.com/mcp` — Streamable HTTP, JSON-RPC 2.0. Nothing to install.
+- Check it with `GET https://agentalog.com/mcp` (server card) or `tools/list`.
+- Every tool is a call on this same API — the MCP has no backend of its own.
+- Credentials (`X-Guest-Token`, `Authorization`, `X-PAYMENT`) go in the header and are forwarded.
+
+## Skill
+
+- `.agents/skills/mural/SKILL.md` — parity with this surface.
+- **Parity:** touched the UI/API → apidocs + skill + this file in the same PR.

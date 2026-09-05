@@ -1,0 +1,35 @@
+overlay: 1.0.0
+info:
+  title: API Evangelist enhancements for Meta Agent Tools
+  version: 1.0.0
+extends: openapi/meta-agent-tools-openapi.json
+x-provenance:
+  generated: '2026-09-05'
+  method: generated
+  source: openapi/meta-agent-tools-openapi.json
+actions:
+  - target: $.info
+    update:
+      contact:
+        email: contato@agentalog.com
+      x-apievangelist:
+        slug: meta-agent-tools
+        canonical_host: agentalog.com
+        legacy_host: classificado.app.br
+        harvested: '2026-09-05'
+        source: https://agentalog.com/openapi.json
+  - target: $.info
+    update:
+      x-agent-surfaces:
+        mcp: https://agentalog.com/mcp
+        llms_txt: https://agentalog.com/llms.txt
+        apis_json: https://agentalog.com/apis.json
+        api_catalog: https://agentalog.com/.well-known/api-catalog
+        okf_bundle: https://agentalog.com/okf/index.md
+  - target: $.info
+    update:
+      x-payment:
+        scheme: x402
+        network: base
+        asset: USDC
+        billing_endpoint: https://agentalog.com/api/billing

@@ -1,0 +1,51 @@
+generated: '2026-09-05'
+method: derived
+source: openapi/meta-agent-tools-openapi.json
+entities:
+  - name: Anuncio (Listing)
+    description: An MCP server, agent skill or plugin in the catalog — the core entity. Carries provenance (origin/origin_id/source), MCP transport metadata (transporte, ns, versao, oficial_status), repository health (repo_host, stars, forks, prs_abertos, pushed_at, repo_estado) and engagement counters (likes, comments, visits).
+    id_field: id
+    states: [pending, live, hidden, low]
+  - name: Comentario (Comment)
+    description: Public comment on a live listing; `mine` marks ownership for the caller's identity.
+    id_field: id
+  - name: Like
+    description: Reversible like — the counter counts people, not calls.
+  - name: Conta (Account)
+    description: E-mail (OTP) account; owns listings and, after /api/auth/claim, absorbs a guest identity's likes and comments.
+    id_field: id
+  - name: Guest identity (mr_…)
+    description: Anonymous engagement identity from POST /api/guest — likes, comments and visit counting hang off it until claimed by an account.
+  - name: ServidorV01
+    description: An MCP server projected into the Official Registry spec v0.1 shape (name, version, repository, remotes, packages) at /v0.1/servers.
+  - name: Facetas
+    description: Catalog-wide counts by kind, provenance, category and repository state.
+  - name: Billing / Precos
+    description: Live x402 configuration and agent prices.
+  - name: EstadoFila / RetratoFila / Carga
+    description: Enrichment-queue and load-source operational snapshots.
+relationships:
+  - from: Anuncio
+    to: Comentario
+    kind: has_many
+    via: /api/listings/{id}/comments (comments_api link on the listing)
+  - from: Anuncio
+    to: Like
+    kind: has_many
+    via: /api/listings/{id}/like (likes counter on the listing)
+  - from: Conta
+    to: Anuncio
+    kind: has_many
+    via: /api/me/listings (mine flag on the listing)
+  - from: Comentario
+    to: Anuncio
+    kind: belongs_to
+    via: path parameter id
+  - from: Guest identity
+    to: Conta
+    kind: belongs_to (after claim)
+    via: POST /api/auth/claim
+  - from: ServidorV01
+    to: Anuncio
+    kind: projection_of
+    via: only live kind=mcp listings are projected into /v0.1/servers
