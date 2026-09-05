@@ -1,0 +1,64 @@
+name: Meta Agent Tools
+description: >-
+  A registry/catalog of MCP servers, agent skills and plugins. It aggregates MCP metadata from the Official MCP
+  Registry, Smithery and Casdoor, and public skill dumps, exposing a REST/HTTP API, a hosted MCP server, an llms.txt
+  agent guide and a public OpenAPI 3.1 contract. Portuguese-language service based in Brazil.
+url: https://raw.githubusercontent.com/api-evangelist/meta-agent-tools/refs/heads/main/apis.yml
+created: '2026-09-05'
+modified: '2026-09-05'
+specificationVersion: '0.21'
+tags:
+  - Developer Tools
+  - API Registry
+  - Agent Registry
+  - MCP
+  - Agent Skills
+  - AI Agents
+  - Catalog
+  - Directory
+  - Search & Discovery
+  - x402
+  - Agent Payments
+  - Community
+  - UGC
+apis:
+  - name: Meta Agent Tools API
+    description: >-
+      REST/HTTP API for a registry of MCP servers, agent skills and plugins — public catalog search, publishing/editing
+      listings, engagement (likes/comments/visits), accounts, MCP subregistry (Official Registry v0.1) and ops/admin
+      routes. Bearer-token auth with guest, session, prepaid credit and admin tiers plus x402 agent micropayments.
+    humanURL: https://classificado.app.br/api/
+    baseURL: https://classificado.app.br
+    tags:
+      - Developer Tools
+      - API Registry
+      - Agent Registry
+      - MCP
+      - Agent Skills
+      - AI Agents
+      - Catalog
+      - Directory
+      - Search & Discovery
+      - x402
+      - Agent Payments
+      - Community
+      - UGC
+    properties:
+      - type: OpenAPI
+        url: https://classificado.app.br/openapi.json
+      - type: MCPServer
+        url: https://classificado.app.br/mcp
+      - type: LLMsTxt
+        url: https://classificado.app.br/llms.txt
+      - type: Documentation
+        url: https://classificado.app.br/llms-full.txt
+      - type: Documentation
+        url: https://classificado.app.br/okf/index.md
+maintainers:
+  - FN: Meta Agent Tools
+    url: https://classificado.app.br/
+generated:
+  by: apis.io/add
+  model: claude-opus-4-8
+  confidence: 97
+  at: '2026-09-05T11:49:17.227Z'
