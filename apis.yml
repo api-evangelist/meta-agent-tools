@@ -24,50 +24,558 @@ tags:
   - Community
   - UGC
 apis:
-  - name: Meta Agent Tools API
-    description: >-
-      REST/HTTP API for a registry of MCP servers, agent skills and plugins — public catalog search, publishing/editing
-      listings, engagement (likes/comments/visits), accounts, MCP subregistry (Official Registry v0.1) and ops/admin
-      routes. Bearer-token auth with guest, session, prepaid credit and admin tiers plus x402 agent micropayments.
-    humanURL: https://agentalog.com/api/
-    baseURL: https://agentalog.com
-    tags:
-      - Developer Tools
-      - API Registry
-      - Agent Registry
-      - MCP
-      - Agent Skills
-      - AI Agents
-      - Catalog
-      - Directory
-      - Search & Discovery
-      - x402
-      - Agent Payments
-      - Community
-      - UGC
-    properties:
-      - type: OpenAPI
-        url: https://agentalog.com/openapi.json
-      - type: OpenAPI
-        url: openapi/meta-agent-tools-openapi.json
-      - type: MCPServer
-        url: mcp/meta-agent-tools-mcp.yml
-      - type: ToolCrosswalk
-        url: mcp/meta-agent-tools-tool-crosswalk.yml
-      - type: LLMsTxt
-        url: llms/meta-agent-tools-llms.txt
-      - type: Documentation
-        url: https://agentalog.com/llms-full.txt
-      - type: Documentation
-        url: https://agentalog.com/okf/index.md
-      - type: APIReference
-        url: https://agentalog.com/llms-full.txt
-      - type: Overlay
-        url: overlays/meta-agent-tools-openapi-overlay.yaml
-      - type: ErrorCatalog
-        url: errors/meta-agent-tools-problem-types.yml
-      - type: DataModel
-        url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-admin-api
+  name: Meta Agent Tools Admin API
+  description: The Admin API from Meta Agent Tools — 5 operation(s) for admin.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Admin
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-admin-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-apis-json-api
+  name: Meta Agent Tools Apis.json API
+  description: The Apis.json API from Meta Agent Tools — 1 operation(s) for apis.json.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Apis.json
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-apis-json-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-auth-api
+  name: Meta Agent Tools Auth API
+  description: The Auth API from Meta Agent Tools — 4 operation(s) for auth.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Auth
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-auth-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-billing-api
+  name: Meta Agent Tools Billing API
+  description: The Billing API from Meta Agent Tools — 1 operation(s) for billing.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Billing
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-billing-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-comments-api
+  name: Meta Agent Tools Comments API
+  description: The Comments API from Meta Agent Tools — 1 operation(s) for comments.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Comments
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-comments-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-contact-api
+  name: Meta Agent Tools Contact API
+  description: The Contact API from Meta Agent Tools — 1 operation(s) for contact.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Contact
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-contact-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-credito-api
+  name: Meta Agent Tools Credito API
+  description: The Credito API from Meta Agent Tools — 1 operation(s) for credito.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Credito
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-credito-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-facets-api
+  name: Meta Agent Tools Facets API
+  description: The Facets API from Meta Agent Tools — 1 operation(s) for facets.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Facets
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-facets-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-feed-json-api
+  name: Meta Agent Tools Feed.json API
+  description: The Feed.json API from Meta Agent Tools — 1 operation(s) for feed.json.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Feed.json
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-feed-json-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-feed-xml-api
+  name: Meta Agent Tools Feed.xml API
+  description: The Feed.xml API from Meta Agent Tools — 1 operation(s) for feed.xml.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Feed.xml
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-feed-xml-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-fila-api
+  name: Meta Agent Tools Fila API
+  description: The Fila API from Meta Agent Tools — 1 operation(s) for fila.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Fila
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-fila-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-go-api
+  name: Meta Agent Tools Go API
+  description: The Go API from Meta Agent Tools — 1 operation(s) for go.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Go
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-go-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-guest-api
+  name: Meta Agent Tools Guest API
+  description: The Guest API from Meta Agent Tools — 1 operation(s) for guest.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Guest
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-guest-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-health-api
+  name: Meta Agent Tools Health API
+  description: The Health API from Meta Agent Tools — 1 operation(s) for health.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Health
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-health-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-listings-api
+  name: Meta Agent Tools Listings API
+  description: The Listings API from Meta Agent Tools — 4 operation(s) for listings.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Listings
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-listings-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-mcp-api
+  name: Meta Agent Tools MCP API
+  description: The Mcp API from Meta Agent Tools — 1 operation(s) for mcp.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Mcp
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-mcp-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-me-api
+  name: Meta Agent Tools Me API
+  description: The Me API from Meta Agent Tools — 3 operation(s) for me.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Me
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-me-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-meta-agent-tools-api
+  name: Meta Agent Tools Meta Agent Tools API
+  description: The Meta Agent Tools API from Meta Agent Tools — 1 operation(s) for meta agent tools.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Meta Agent Tools
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-meta-agent-tools-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-metrics-api
+  name: Meta Agent Tools Metrics API
+  description: The Metrics API from Meta Agent Tools — 1 operation(s) for metrics.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Metrics
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-metrics-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-okf-api
+  name: Meta Agent Tools Okf API
+  description: The Okf API from Meta Agent Tools — 1 operation(s) for okf.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Okf
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-okf-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-servers-api
+  name: Meta Agent Tools Servers API
+  description: The Servers API from Meta Agent Tools — 1 operation(s) for servers.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Servers
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-servers-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-visit-api
+  name: Meta Agent Tools Visit API
+  description: The Visit API from Meta Agent Tools — 1 operation(s) for visit.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - Visit
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-visit-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
+- aid: meta-agent-tools:meta-agent-tools-well-known-api
+  name: Meta Agent Tools .well Known API
+  description: The .well Known API from Meta Agent Tools — 1 operation(s) for .well known.
+  humanURL: https://agentalog.com/api/
+  baseURL: https://agentalog.com
+  tags:
+  - .well Known
+  properties:
+  - type: OpenAPI
+    url: openapi/meta-agent-tools-well-known-api-openapi.yml
+  - type: ToolCrosswalk
+    url: mcp/meta-agent-tools-tool-crosswalk.yml
+  - type: LLMsTxt
+    url: llms/meta-agent-tools-llms.txt
+  - type: Documentation
+    url: https://agentalog.com/llms-full.txt
+  - type: Documentation
+    url: https://agentalog.com/okf/index.md
+  - type: APIReference
+    url: https://agentalog.com/llms-full.txt
+  - type: ErrorCatalog
+    url: errors/meta-agent-tools-problem-types.yml
+  - type: DataModel
+    url: data-model/meta-agent-tools-data-model.yml
 maintainers:
   - FN: Meta Agent Tools
     email: contato@agentalog.com
@@ -78,6 +586,10 @@ generated:
   confidence: 97
   at: '2026-09-05T11:49:17.227Z'
 common:
+- type: MCPServer
+  url: mcp/meta-agent-tools-mcp.yml
+- type: Overlay
+  url: overlays/meta-agent-tools-openapi-overlay.yaml
 - type: AgenticAccess
   url: agentic-access/meta-agent-tools-agentic-access.yml
 - type: VulnerabilityDisclosure
