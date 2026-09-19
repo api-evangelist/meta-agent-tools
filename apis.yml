@@ -54,6 +54,8 @@ apis:
   humanURL: https://agentalog.com/api/
   baseURL: https://agentalog.com
   tags:
+  - APIs.json
+  tags_raw:
   - Apis.json
   properties:
   - type: OpenAPI
@@ -78,6 +80,8 @@ apis:
   humanURL: https://agentalog.com/api/
   baseURL: https://agentalog.com
   tags:
+  - Authentication
+  tags_raw:
   - Auth
   properties:
   - type: OpenAPI
@@ -390,6 +394,8 @@ apis:
   humanURL: https://agentalog.com/api/
   baseURL: https://agentalog.com
   tags:
+  - MCP
+  tags_raw:
   - Mcp
   properties:
   - type: OpenAPI
