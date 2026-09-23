@@ -1,0 +1,633 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Listings API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Listings
+paths:
+  /api/listings:
+    get:
+      operationId: list_listings
+      summary: 'The public mosaic: paginated search of the catalog''s live listings'
+      description: 'Only `live` in the mosaic. With `q`, `low_count` says how many `low` listings (few stars or no clear license) match the term — LIKE with a cap of 200. `low=1` includes that tail; without `q` the parameter is ignored.
+
+        Returns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}], limit, offset, next_offset, low_count, low_capped, low_included, api }'
+      security: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Free text over the name, the tagline and the description.
+        example: postgres
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - mcp
+          - skill
+          - plugin
+        description: Which kind of resource to fetch.
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Category declared by whoever published.
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: recent
+          enum:
+          - recent
+          - likes
+          - visits
+        description: Result order.
+      - name: low
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: '`1` includes `low` listings in the result. Only valid together with `q`.'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 24
+        description: Listings per page.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: How many listings to skip. Use `next_offset` from the previous response.
+      responses:
+        '200':
+          description: '{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}], limit, offset, next_offset, low_count, low_capped, low_included, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeAnuncios'
+      tags:
+      - Listings
+    post:
+      operationId: create_listing
+      summary: Registers an MCP server, a skill or a plugin in the catalog.
+      description: 'Two doors to the same action. Human with a session: free, 1 per day, at most 3 in the queue. Agent (with or without a guest): **402 with `accepts[]`**, $0.10 — pay and repeat. For a skill, the `SKILL.md` URL is enough; the rest is checked. **Validates before charging:** a refused body (400) and an exhausted quota (429) come BEFORE the 402, so no payment settles for a listing already known not to get in. A valid body without payment keeps receiving the 402 with the price.
+
+        Returns: { ok, id, status }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  description: What is being registered.
+                url:
+                  type: string
+                  description: MCP endpoint, SKILL.md URL or the plugin's repository.
+                name:
+                  type: string
+                  description: Display name; without it, taken from the source.
+                tagline:
+                  type: string
+                  description: One line saying what it is for.
+                body:
+                  type: string
+                  description: Long description, optional.
+                category:
+                  type: string
+                  description: Category so the listing shows up under the right filter.
+              required:
+              - kind
+              - url
+            example:
+              kind: mcp
+              category: tools
+              name: Name
+              tagline: One line
+              url: https://example.com/mcp
+      responses:
+        '200':
+          description: '{ ok, id, status }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true` when the request went in.
+                  id:
+                    type: string
+                    description: ID of the created listing.
+                  status:
+                    type: string
+                    description: 'Always `pending`: everything goes through the queue before turning live.'
+                required:
+                - ok
+                - id
+                - status
+        '400':
+          description: '`kind` or `url` missing, invalid URL, URL that does not answer or refused field.'
+        '402':
+          description: 'Quota exceeded. The response carries `accepts[]` (x402, USDC on Base): pay and repeat the same call with `X-PAYMENT`.'
+        '429':
+          description: 1 per day, at most 3 pending — applies to both doors, and is checked before charging.
+        '502':
+          description: 'The payment settled and the write failed. The body carries `transaction`: keep it and talk to support.'
+      tags:
+      - Listings
+  /api/listings/{id}:
+    get:
+      operationId: get_listing
+      summary: One listing's page. The owner sees their own even when pending or hidden
+      description: 'Returns: { id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Anuncio'
+        '404':
+          description: The listing does not exist, or it is not yours and is not live/low.
+      tags:
+      - Listings
+    patch:
+      operationId: patch_api_listings_by_id
+      summary: Edits a listing of yours. Changing the URL sends it back to the queue
+      description: 'The URL is what moderation looks at; swapping it after approval would bypass the queue, so the listing goes back to `pending`.
+
+        Returns: { ok, id, status }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: New display name.
+                tagline:
+                  type: string
+                  description: New summary line.
+                body:
+                  type: string
+                  description: New long description.
+                category:
+                  type: string
+                  description: New category.
+                url:
+                  type: string
+                  description: New URL — changing this sends the listing back to `pending`.
+            example:
+              tagline: …
+      responses:
+        '200':
+          description: '{ ok, id, status }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true`.
+                  id:
+                    type: string
+                    description: ID of the edited listing.
+                  status:
+                    type: string
+                    description: State after the edit; back to `pending` if the URL changed.
+                required:
+                - ok
+                - id
+                - status
+        '400':
+          description: Invalid field in the body.
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The listing is not yours or does not exist.
+      tags:
+      - Listings
+  /api/listings/{id}/comments:
+    get:
+      operationId: list_comments
+      summary: Public comments on a live listing
+      description: 'With a credential on the call, each comment of yours comes with `mine: true`.
+
+        Returns: { items[{id,body,author,created_at,mine}], total }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ items[{id,body,author,created_at,mine}], total }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comentario'
+                    description: The comments, newest first.
+                  total:
+                    type: integer
+                    description: How many comments the listing has.
+                required:
+                - items
+                - total
+        '404':
+          description: The listing does not exist or is not live.
+      tags:
+      - Listings
+    post:
+      operationId: post_api_listings_by_id_comments
+      summary: Writes a comment on the listing. Cap of 20 per hour per owner
+      description: 'Returns: { ok, id, body }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: The comment text.
+              required:
+              - body
+            example:
+              body: text
+      responses:
+        '200':
+          description: '{ ok, id, body }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true` when the comment went in.
+                  id:
+                    type: string
+                    description: ID of the created comment.
+                  body:
+                    type: string
+                    description: The stored text.
+                required:
+                - ok
+                - id
+                - body
+        '400':
+          description: Empty or too long text.
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The listing does not exist.
+        '429':
+          description: More than 20 comments in the hour.
+      tags:
+      - Listings
+  /api/listings/{id}/like:
+    post:
+      operationId: like_listing
+      summary: 'Likes the listing. Calling again does not add up: the counter counts people'
+      description: 'Returns: { ok, liked, likes }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ ok, liked, likes }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Like'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+      tags:
+      - Listings
+    delete:
+      operationId: delete_api_listings_by_id_like
+      summary: Unlikes and gives the point back to the public counter
+      description: 'Returns: { ok, liked, likes }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ ok, liked, likes }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Like'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+      tags:
+      - Listings
+components:
+  schemas:
+    Like:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        liked:
+          type: boolean
+          description: Whether YOU are liking it now.
+        likes:
+          type: integer
+          description: Total people liking the listing.
+      required:
+      - ok
+      - liked
+      - likes
+      description: The state of the like after the call. Turning it on and off return the same shape.
+    Anuncio:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Listing ID; it is the key across the whole API.
+        kind:
+          type: string
+          description: What this listing is.
+        category:
+          type: string
+          description: Category chosen by whoever published.
+          nullable: true
+        name:
+          type: string
+          description: Display name.
+        tagline:
+          type: string
+          description: One line saying what it is for.
+          nullable: true
+        body:
+          type: string
+          description: Long description, when whoever published wrote one.
+          nullable: true
+        url:
+          type: string
+          description: Where the resource lives — the MCP endpoint, the SKILL.md or the repository.
+        status:
+          type: string
+          description: State in the catalog.
+        origin:
+          type: string
+          description: 'Where the listing came from: `official`, `marketplace`, `directory` or a community submission.'
+        origin_id:
+          type: string
+          description: Identifier of the listing at the source.
+          nullable: true
+        install:
+          type: string
+          description: How to install, when the source says.
+          nullable: true
+        source:
+          type: string
+          description: Source code URL, when known.
+          nullable: true
+        transporte:
+          type: string
+          description: 'MCP transport: `stdio`, `http`, `sse`.'
+          nullable: true
+        ns:
+          type: string
+          description: Server namespace in the official registry.
+          nullable: true
+        versao:
+          type: string
+          description: Version declared by the source.
+          nullable: true
+        oficial_status:
+          type: string
+          description: State in the official MCP registry, when applicable.
+          nullable: true
+        repo_host:
+          type: string
+          description: Where the repository is hosted, e.g. `github`.
+          nullable: true
+        topico:
+          type: string
+          description: Topic inferred from the repository, used in the facets.
+          nullable: true
+        stars:
+          type: integer
+          description: Repository stars at the last check.
+          nullable: true
+        forks:
+          type: integer
+          description: Repository forks at the last check.
+          nullable: true
+        prs_abertos:
+          type: integer
+          description: Open pull requests at the last check.
+          nullable: true
+        pushed_at:
+          type: string
+          description: Last push to the repository (UTC).
+          nullable: true
+        repo_estado:
+          type: string
+          description: How the repository is doing (active, stalled, archived, renamed, gone).
+          nullable: true
+        likes:
+          type: integer
+          description: How many people liked it — the like is reversible and counts people.
+        comments:
+          type: integer
+          description: Public comments on the listing.
+        visits:
+          type: integer
+          description: Visits counted by the hop; at most 1 per owner per day.
+        created_at:
+          type: string
+          description: When it entered the catalog (UTC).
+        updated_at:
+          type: string
+          description: Last change (UTC).
+          nullable: true
+        mine:
+          type: boolean
+          description: '`true` when the listing is yours — only then can you edit it.'
+        api:
+          type: string
+          description: Absolute URL of this listing's page.
+        go:
+          type: string
+          description: 'Hop URL: redirects to `url` and counts the visit.'
+        comments_api:
+          type: string
+          description: Absolute URL of this listing's comments.
+      required:
+      - id
+      - kind
+      - category
+      - name
+      - tagline
+      - body
+      - url
+      - status
+      - origin
+      - origin_id
+      - install
+      - source
+      - transporte
+      - ns
+      - versao
+      - oficial_status
+      - repo_host
+      - topico
+      - stars
+      - forks
+      - prs_abertos
+      - pushed_at
+      - repo_estado
+      - likes
+      - comments
+      - visits
+      - created_at
+      - updated_at
+      - mine
+      - api
+      - go
+      - comments_api
+      description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    PaginaDeAnuncios:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Anuncio'
+          description: The listings on this page.
+        limit:
+          type: integer
+          description: Page size applied.
+        offset:
+          type: integer
+          description: Offset applied.
+        next_offset:
+          type: integer
+          description: Offset of the next page; `null` when there is no more.
+          nullable: true
+        low_count:
+          type: integer
+          description: How many `low` listings match `q` (cap 200). Zero without a term.
+        low_capped:
+          type: boolean
+          description: '`true` when the count hit the cap — there are at least that many.'
+        low_included:
+          type: boolean
+          description: '`true` when `low=1` mixed the tail into this page.'
+        api:
+          type: string
+          description: Absolute URL of this listing.
+      required:
+      - items
+      - limit
+      - offset
+      - next_offset
+      - low_count
+      - low_capped
+      - low_included
+      - api
+      description: 'A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision.'
+    Comentario:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Comment ID, for deleting.
+        body:
+          type: string
+          description: The comment text.
+        author:
+          type: string
+          description: Nickname of whoever wrote it.
+          nullable: true
+        created_at:
+          type: string
+          description: When it was written (UTC).
+        mine:
+          type: boolean
+          description: '`true` if it is yours — only you can delete it.'
+      required:
+      - id
+      - body
+      - author
+      - created_at
+      - mine
+      description: A public comment on a listing.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

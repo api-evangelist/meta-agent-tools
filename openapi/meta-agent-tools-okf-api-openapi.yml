@@ -1,0 +1,35 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Okf API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Okf
+paths:
+  /okf/{arquivo}:
+    get:
+      operationId: get_okf_by_arquivo
+      summary: 'OKF bundle (Open Knowledge Format v0.1): markdown with frontmatter so an agent…'
+      description: 'Returns: `text/markdown`. Start at `/okf/index.md`, which lists the bundle.'
+      security: []
+      parameters:
+      - name: arquivo
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '`text/markdown`. Start at `/okf/index.md`, which lists the bundle.'
+        '404':
+          description: File outside the bundle.
+      tags:
+      - Okf
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

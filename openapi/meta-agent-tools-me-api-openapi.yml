@@ -1,0 +1,350 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Me API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Me
+paths:
+  /api/me/listings:
+    get:
+      operationId: get_api_me_listings
+      summary: The owner's listings in any state, including pending and hidden
+      description: 'It is the only route that shows what is not live yet — the public mosaic never does.
+
+        Returns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: '{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Anuncio'
+                    description: The account's listings, in any state.
+                required:
+                - items
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Me
+  /api/me:
+    get:
+      operationId: get_api_me
+      summary: The session's account and, for the admin, the load state
+      description: 'Returns: { user{id,email}, admin, carga?{fontes,falhas,runs} }'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: '{ user{id,email}, admin, carga?{fontes,falhas,runs} }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    allOf:
+                    - $ref: '#/components/schemas/Conta'
+                    description: The person who owns the session.
+                  admin:
+                    type: boolean
+                    description: Whether this account is the `ADMIN_EMAIL`.
+                  carga:
+                    allOf:
+                    - $ref: '#/components/schemas/Carga'
+                    description: State of the load sources; admin only.
+                required:
+                - user
+                - admin
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Me
+  /api/me/ui:
+    get:
+      operationId: get_api_me_ui
+      summary: 'The owner''s screen preferences: search, filter, sort and theme'
+      description: 'Exists so what the person set up survives an F5 and reopening the app on another device. A refresh is not a new screen — see AGENTS-UI.md. A guest has none: without an account there is nobody to give the data back to later, so the guest stays in the browser''s `localStorage` only.
+
+        Returns: { prefs, api }'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: '{ prefs, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasUi'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Me
+    put:
+      operationId: put_api_me_ui
+      summary: Stores the owner's screen preferences, replacing the previous ones
+      description: 'It is PUT and not PATCH on purpose: the client sends the whole screen state, not a delta. Cap of 8 KB — this is a screen preference, not a blob store.
+
+        Returns: { ok }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prefs:
+                  type: object
+                  description: 'The interface state to keep. Opaque to the server: any JSON within the cap works.'
+              required:
+              - prefs
+            example:
+              prefs:
+                q: postgres
+                kind: mcp
+                sort: likes
+                tema: escuro
+      responses:
+        '200':
+          description: '{ ok }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          description: Body that is not JSON (`bad_json`) or without the `prefs` key (`prefs`).
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '405':
+          description: Method other than GET or PUT on this route.
+        '413':
+          description: Preferences above the 8 KB cap (`grande`).
+      tags:
+      - Me
+components:
+  schemas:
+    Carga:
+      type: object
+      properties:
+        fontes:
+          type: array
+          items:
+            type: object
+          description: Each source with its last batch and the count it brought.
+        falhas:
+          type: array
+          items:
+            type: object
+          description: Import failures not yet marked as seen.
+        runs:
+          type: array
+          items:
+            type: object
+          description: The recent runs, newest first.
+      required:
+      - fontes
+      - falhas
+      - runs
+      description: The state of the catalog's load sources — where the listings come from and when they came.
+    Conta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of the account.
+        email:
+          type: string
+          description: E-mail confirmed by code.
+      required:
+      - id
+      - email
+      description: The person behind the session.
+    Anuncio:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Listing ID; it is the key across the whole API.
+        kind:
+          type: string
+          description: What this listing is.
+        category:
+          type: string
+          description: Category chosen by whoever published.
+          nullable: true
+        name:
+          type: string
+          description: Display name.
+        tagline:
+          type: string
+          description: One line saying what it is for.
+          nullable: true
+        body:
+          type: string
+          description: Long description, when whoever published wrote one.
+          nullable: true
+        url:
+          type: string
+          description: Where the resource lives — the MCP endpoint, the SKILL.md or the repository.
+        status:
+          type: string
+          description: State in the catalog.
+        origin:
+          type: string
+          description: 'Where the listing came from: `official`, `marketplace`, `directory` or a community submission.'
+        origin_id:
+          type: string
+          description: Identifier of the listing at the source.
+          nullable: true
+        install:
+          type: string
+          description: How to install, when the source says.
+          nullable: true
+        source:
+          type: string
+          description: Source code URL, when known.
+          nullable: true
+        transporte:
+          type: string
+          description: 'MCP transport: `stdio`, `http`, `sse`.'
+          nullable: true
+        ns:
+          type: string
+          description: Server namespace in the official registry.
+          nullable: true
+        versao:
+          type: string
+          description: Version declared by the source.
+          nullable: true
+        oficial_status:
+          type: string
+          description: State in the official MCP registry, when applicable.
+          nullable: true
+        repo_host:
+          type: string
+          description: Where the repository is hosted, e.g. `github`.
+          nullable: true
+        topico:
+          type: string
+          description: Topic inferred from the repository, used in the facets.
+          nullable: true
+        stars:
+          type: integer
+          description: Repository stars at the last check.
+          nullable: true
+        forks:
+          type: integer
+          description: Repository forks at the last check.
+          nullable: true
+        prs_abertos:
+          type: integer
+          description: Open pull requests at the last check.
+          nullable: true
+        pushed_at:
+          type: string
+          description: Last push to the repository (UTC).
+          nullable: true
+        repo_estado:
+          type: string
+          description: How the repository is doing (active, stalled, archived, renamed, gone).
+          nullable: true
+        likes:
+          type: integer
+          description: How many people liked it — the like is reversible and counts people.
+        comments:
+          type: integer
+          description: Public comments on the listing.
+        visits:
+          type: integer
+          description: Visits counted by the hop; at most 1 per owner per day.
+        created_at:
+          type: string
+          description: When it entered the catalog (UTC).
+        updated_at:
+          type: string
+          description: Last change (UTC).
+          nullable: true
+        mine:
+          type: boolean
+          description: '`true` when the listing is yours — only then can you edit it.'
+        api:
+          type: string
+          description: Absolute URL of this listing's page.
+        go:
+          type: string
+          description: 'Hop URL: redirects to `url` and counts the visit.'
+        comments_api:
+          type: string
+          description: Absolute URL of this listing's comments.
+      required:
+      - id
+      - kind
+      - category
+      - name
+      - tagline
+      - body
+      - url
+      - status
+      - origin
+      - origin_id
+      - install
+      - source
+      - transporte
+      - ns
+      - versao
+      - oficial_status
+      - repo_host
+      - topico
+      - stars
+      - forks
+      - prs_abertos
+      - pushed_at
+      - repo_estado
+      - likes
+      - comments
+      - visits
+      - created_at
+      - updated_at
+      - mine
+      - api
+      - go
+      - comments_api
+      description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    PreferenciasUi:
+      type: object
+      properties:
+        prefs:
+          type: object
+          description: The stored preferences, as the interface wrote them. `{}` when nothing was ever stored.
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - prefs
+      - api
+      description: 'What the person set up on the screen and needs to survive an F5: filter selection, active tab and open item tabs. The content is OPAQUE — the server does not interpret the JSON, it only stores and returns it, so the screen can change fields without a database migration.'
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+      required:
+      - ok
+      description: Write confirmation with no body of its own to return.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

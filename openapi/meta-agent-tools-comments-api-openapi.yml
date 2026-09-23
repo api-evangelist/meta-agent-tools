@@ -1,0 +1,54 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Comments API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Comments
+paths:
+  /api/comments/{id}:
+    delete:
+      operationId: delete_api_comments_by_id
+      summary: Deletes a comment of yours. Someone else's comment answers 404, not 403
+      description: 'The 404 is on purpose: the API does not confirm that a comment with that id exists if it is not yours.
+
+        Returns: { ok, id }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ ok, id }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true`.
+                  id:
+                    type: string
+                    description: The id that was removed.
+                required:
+                - ok
+                - id
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+      tags:
+      - Comments
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

@@ -1,0 +1,27 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Feed.xml API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Feed.xml
+paths:
+  /feed.xml:
+    get:
+      operationId: get_feed_xml
+      summary: RSS 2.0 of the most recently published listings
+      description: 'Returns: `application/rss+xml`.'
+      security: []
+      responses:
+        '200':
+          description: '`application/rss+xml`.'
+      tags:
+      - Feed.xml
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

@@ -1,0 +1,107 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Servers API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Servers
+paths:
+  /v0.1/servers:
+    get:
+      operationId: list_mcp_servers
+      summary: MCP subregistry in the Official Registry format (spec v0.1), cursor-paginated
+      description: 'Only `kind=mcp` and only `live`. It is the route a generic MCP client knows how to read without knowing this product. `GET /v0/servers` is an alias of the same resource, kept for whoever already pointed there — this is the canonical URL.
+
+        Returns: { servers[{name,description,version,repository,remotes,packages}], metadata }'
+      security: []
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Free text over the server's name and description.
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor of the next page, from `metadata.next_cursor`.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 30
+        description: Servers per page.
+      responses:
+        '200':
+          description: '{ servers[{name,description,version,repository,remotes,packages}], metadata }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaV01'
+      tags:
+      - Servers
+components:
+  schemas:
+    ServidorV01:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Server name in namespace/name format.
+        description:
+          type: string
+          description: What the server does.
+          nullable: true
+        version:
+          type: string
+          description: Declared version.
+          nullable: true
+        repository:
+          type: object
+          description: Where the code lives.
+          nullable: true
+        remotes:
+          type: array
+          items:
+            type: object
+          description: The server's remote endpoints, when any.
+          nullable: true
+        packages:
+          type: array
+          items:
+            type: object
+          description: The server's installable packages, when any.
+          nullable: true
+      required:
+      - name
+      - description
+      - version
+      - repository
+      - remotes
+      - packages
+      description: An MCP server in the Official Registry format (spec v0.1) — what a generic MCP client expects to read.
+    PaginaV01:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServidorV01'
+          description: The servers on this page.
+        metadata:
+          type: object
+          description: '`next_cursor` and `count`, in the spec''s format.'
+      required:
+      - servers
+      - metadata
+      description: The subregistry page, cursor-paginated as the v0.1 spec requires.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

@@ -1,0 +1,187 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Auth API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Auth
+paths:
+  /api/auth/start:
+    post:
+      operationId: post_api_auth_start
+      summary: Sends the 6-digit code by e-mail to create the account or sign in to it
+      description: 'Returns: { ok }'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: E-mail that will receive the code.
+              required:
+              - email
+            example:
+              email: you@example.com
+      responses:
+        '200':
+          description: '{ ok }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          description: E-mail missing or malformed.
+        '429':
+          description: Too many requests for the same e-mail.
+      tags:
+      - Auth
+  /api/auth/verify:
+    post:
+      operationId: post_api_auth_verify
+      summary: Exchanges the code for a `sess_…` session
+      description: 'Returns: { ok, token, user{id,email} }'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: The same e-mail as in `/api/auth/start`.
+                code:
+                  type: string
+                  description: The 6 digits that arrived by e-mail.
+              required:
+              - email
+              - code
+            example:
+              email: you@example.com
+              code: '123456'
+      responses:
+        '200':
+          description: '{ ok, token, user{id,email} }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true` when the code matched.
+                  token:
+                    type: string
+                    description: 'Session `sess_…` to use in `Authorization: Bearer`.'
+                  user:
+                    allOf:
+                    - $ref: '#/components/schemas/Conta'
+                    description: The person who just signed in.
+                required:
+                - ok
+                - token
+                - user
+        '400':
+          description: Wrong or expired code.
+        '429':
+          description: Too many attempts.
+      tags:
+      - Auth
+  /api/auth/claim:
+    post:
+      operationId: post_api_auth_claim
+      summary: 'Ties a guest to the account: its likes and comments become the account''s'
+      description: 'Returns: { ok, claimed }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                guest_token:
+                  type: string
+                  description: Guest `mr_…` to attach to the account.
+              required:
+              - guest_token
+            example:
+              guest_token: mr_…
+      responses:
+        '200':
+          description: '{ ok, claimed }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true`.
+                  claimed:
+                    type: integer
+                    description: How many records changed owner.
+                required:
+                - ok
+                - claimed
+        '400':
+          description: '`guest_token` missing.'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Auth
+  /api/auth/logout:
+    post:
+      operationId: post_api_auth_logout
+      summary: Invalidates the current session
+      description: 'Returns: { ok }'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: '{ ok }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Auth
+components:
+  schemas:
+    Conta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of the account.
+        email:
+          type: string
+          description: E-mail confirmed by code.
+      required:
+      - id
+      - email
+      description: The person behind the session.
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+      required:
+      - ok
+      description: Write confirmation with no body of its own to return.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

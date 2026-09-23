@@ -1,0 +1,55 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Facets API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Facets
+paths:
+  /api/facets:
+    get:
+      operationId: get_api_facets
+      summary: The whole catalog's counts by kind, provenance, category and repository state
+      description: 'Exists to build a filter without sweeping the listings: there are tens of thousands, and asking for the list just to count would be expensive. Also brings `topico_inferido`, deduced from the repositories.
+
+        Returns: { total, facetas, topico_inferido, api }'
+      security: []
+      responses:
+        '200':
+          description: '{ total, facetas, topico_inferido, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facetas'
+      tags:
+      - Facets
+components:
+  schemas:
+    Facetas:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Live listings in the catalog.
+        facetas:
+          type: object
+          description: 'Map of facet → list of `{ v, n }` (value and count): `kind`, `origin`, `category`, `repo_estado`, `transporte`…'
+        topico_inferido:
+          type: object
+          description: Topics deduced from the repositories, with the count of each.
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - total
+      - facetas
+      - topico_inferido
+      - api
+      description: The whole catalog's breakdowns, to build a filter without sweeping the listings.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

@@ -1,0 +1,27 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Apis.json API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Apis.json
+paths:
+  /apis.json:
+    get:
+      operationId: get_apis_json
+      summary: 'APIs.json (apisjson.org, 0.19): the index APIs.io harvests — the API, the MCP…'
+      description: 'Returns: `application/json` in the APIs.json 0.19 format: `apis[]` with `baseURL`, `humanURL` and `properties[]`.'
+      security: []
+      responses:
+        '200':
+          description: '`application/json` in the APIs.json 0.19 format: `apis[]` with `baseURL`, `humanURL` and `properties[]`.'
+      tags:
+      - Apis.json
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

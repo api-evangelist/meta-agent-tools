@@ -1,0 +1,69 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Meta Agent Tools
+paths:
+  /api/:
+    get:
+      operationId: api_index
+      summary: 'Self-describing index: the whole API surface, with quota and quickstart'
+      description: 'Returns: { name, description, auth, docs, endpoints, quota, mcp, quickstart }'
+      security: []
+      responses:
+        '200':
+          description: '{ name, description, auth, docs, endpoints, quota, mcp, quickstart }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Product name.
+                  description:
+                    type: string
+                    description: What the registry is and what it is not.
+                  auth:
+                    type: object
+                    description: Each authentication mode and how to obtain it.
+                  docs:
+                    type: object
+                    description: Links to llms.txt, llms-full.txt, openapi.json, MCP and the UI.
+                  endpoints:
+                    type: array
+                    items:
+                      type: object
+                    description: Every endpoint with method, path, auth, absolute URL and what it returns.
+                  quota:
+                    type: object
+                    description: What is free, what costs and how to pay — before you spend a call.
+                  mcp:
+                    type: object
+                    description: Address and transport of the MCP server.
+                  quickstart:
+                    type: array
+                    items:
+                      type: string
+                    description: The calls that take you from zero to the first published listing.
+                required:
+                - name
+                - description
+                - auth
+                - docs
+                - endpoints
+                - quota
+                - mcp
+                - quickstart
+      tags:
+      - Meta Agent Tools
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

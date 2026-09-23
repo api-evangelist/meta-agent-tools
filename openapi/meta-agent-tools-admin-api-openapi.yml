@@ -1,0 +1,436 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Admin API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Admin
+paths:
+  /api/admin/fila:
+    post:
+      operationId: post_api_admin_fila
+      summary: The enrichment robot pushes the snapshot of its own queue here
+      description: 'Robot credential only: this does not write to the catalog, so there is no reason to accept admin.
+
+        Returns: { ok }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fila:
+                  type: object
+                  description: 'The queue snapshot: totals, states and reasons.'
+              required:
+              - fila
+            example:
+              fila:
+                total: 20182
+                concluidos: 11675
+      responses:
+        '200':
+          description: '{ ok }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          description: Body without `fila`.
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Admin
+  /api/admin/repos:
+    post:
+      operationId: post_api_admin_repos
+      summary: 'The enricher writes here what it found out about a repository: stars, forks…'
+      description: 'Accepts the enricher''s credential OR the admin''s — the robot has its own, with less privilege, and the admin gets in to operate by hand without depending on the robot. The Worker collects nothing: it only stores what was already checked outside it.
+
+        Returns: { ok }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repos:
+                  type: array
+                  items:
+                    type: object
+                  description: One item per checked repository, with stars, forks, PRs, `pushed_at` and state.
+              required:
+              - repos
+            example:
+              repos:
+              - url: https://github.com/x/y
+                stars: 120
+                repo_estado: ativo
+      responses:
+        '200':
+          description: '{ ok }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          description: Body without `repos` or malformed item.
+        '401':
+          description: Neither the enricher's nor the admin's credential.
+      tags:
+      - Admin
+  /api/admin/listings:
+    get:
+      operationId: get_api_admin_listings
+      summary: The moderation queue. Without a filter, brings what is pending
+      description: 'Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session.
+
+        Returns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          default: pending
+          enum:
+          - pending
+          - live
+          - hidden
+          - blocked
+        description: Which state to list.
+      responses:
+        '200':
+          description: '{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Anuncio'
+                    description: The listings in that state.
+                required:
+                - items
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Admin
+  /api/admin/listings/{id}:
+    post:
+      operationId: post_api_admin_listings_by_id
+      summary: 'Decides the fate of a listing in the queue: approve, hide or block'
+      description: 'Returns: { ok, status }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  description: What to do with the listing.
+              required:
+              - action
+            example:
+              action: approve
+      responses:
+        '200':
+          description: '{ ok, status }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always `true`.
+                  status:
+                    type: string
+                    description: The state the listing ended up in.
+                required:
+                - ok
+                - status
+        '400':
+          description: '`action` outside the list.'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+      tags:
+      - Admin
+  /api/admin/carga:
+    get:
+      operationId: get_api_admin_carga
+      summary: 'State of the catalog''s load sources: last batch, count and failures'
+      description: 'Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session.
+
+        Returns: { fontes, falhas, runs }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: fonte
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Restricts to one source, e.g. `official_mcp`.
+      responses:
+        '200':
+          description: '{ fontes, falhas, runs }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Carga'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Admin
+    post:
+      operationId: post_api_admin_carga
+      summary: Triggers a load batch or marks a failure alert as seen
+      description: 'Returns: { ok }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  description: What to do with the source.
+                fonte:
+                  type: string
+                  description: Which source to load or mark, e.g. `official_mcp`.
+              required:
+              - action
+            example:
+              action: run
+              fonte: official_mcp
+      responses:
+        '200':
+          description: '{ ok }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          description: '`action` outside the list or unknown source.'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Admin
+components:
+  schemas:
+    Anuncio:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Listing ID; it is the key across the whole API.
+        kind:
+          type: string
+          description: What this listing is.
+        category:
+          type: string
+          description: Category chosen by whoever published.
+          nullable: true
+        name:
+          type: string
+          description: Display name.
+        tagline:
+          type: string
+          description: One line saying what it is for.
+          nullable: true
+        body:
+          type: string
+          description: Long description, when whoever published wrote one.
+          nullable: true
+        url:
+          type: string
+          description: Where the resource lives — the MCP endpoint, the SKILL.md or the repository.
+        status:
+          type: string
+          description: State in the catalog.
+        origin:
+          type: string
+          description: 'Where the listing came from: `official`, `marketplace`, `directory` or a community submission.'
+        origin_id:
+          type: string
+          description: Identifier of the listing at the source.
+          nullable: true
+        install:
+          type: string
+          description: How to install, when the source says.
+          nullable: true
+        source:
+          type: string
+          description: Source code URL, when known.
+          nullable: true
+        transporte:
+          type: string
+          description: 'MCP transport: `stdio`, `http`, `sse`.'
+          nullable: true
+        ns:
+          type: string
+          description: Server namespace in the official registry.
+          nullable: true
+        versao:
+          type: string
+          description: Version declared by the source.
+          nullable: true
+        oficial_status:
+          type: string
+          description: State in the official MCP registry, when applicable.
+          nullable: true
+        repo_host:
+          type: string
+          description: Where the repository is hosted, e.g. `github`.
+          nullable: true
+        topico:
+          type: string
+          description: Topic inferred from the repository, used in the facets.
+          nullable: true
+        stars:
+          type: integer
+          description: Repository stars at the last check.
+          nullable: true
+        forks:
+          type: integer
+          description: Repository forks at the last check.
+          nullable: true
+        prs_abertos:
+          type: integer
+          description: Open pull requests at the last check.
+          nullable: true
+        pushed_at:
+          type: string
+          description: Last push to the repository (UTC).
+          nullable: true
+        repo_estado:
+          type: string
+          description: How the repository is doing (active, stalled, archived, renamed, gone).
+          nullable: true
+        likes:
+          type: integer
+          description: How many people liked it — the like is reversible and counts people.
+        comments:
+          type: integer
+          description: Public comments on the listing.
+        visits:
+          type: integer
+          description: Visits counted by the hop; at most 1 per owner per day.
+        created_at:
+          type: string
+          description: When it entered the catalog (UTC).
+        updated_at:
+          type: string
+          description: Last change (UTC).
+          nullable: true
+        mine:
+          type: boolean
+          description: '`true` when the listing is yours — only then can you edit it.'
+        api:
+          type: string
+          description: Absolute URL of this listing's page.
+        go:
+          type: string
+          description: 'Hop URL: redirects to `url` and counts the visit.'
+        comments_api:
+          type: string
+          description: Absolute URL of this listing's comments.
+      required:
+      - id
+      - kind
+      - category
+      - name
+      - tagline
+      - body
+      - url
+      - status
+      - origin
+      - origin_id
+      - install
+      - source
+      - transporte
+      - ns
+      - versao
+      - oficial_status
+      - repo_host
+      - topico
+      - stars
+      - forks
+      - prs_abertos
+      - pushed_at
+      - repo_estado
+      - likes
+      - comments
+      - visits
+      - created_at
+      - updated_at
+      - mine
+      - api
+      - go
+      - comments_api
+      description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    Carga:
+      type: object
+      properties:
+        fontes:
+          type: array
+          items:
+            type: object
+          description: Each source with its last batch and the count it brought.
+        falhas:
+          type: array
+          items:
+            type: object
+          description: Import failures not yet marked as seen.
+        runs:
+          type: array
+          items:
+            type: object
+          description: The recent runs, newest first.
+      required:
+      - fontes
+      - falhas
+      - runs
+      description: The state of the catalog's load sources — where the listings come from and when they came.
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+      required:
+      - ok
+      description: Write confirmation with no body of its own to return.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

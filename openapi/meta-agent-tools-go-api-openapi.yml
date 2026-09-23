@@ -1,0 +1,37 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Go API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Go
+paths:
+  /api/go/{id}:
+    get:
+      operationId: go_listing
+      summary: 'Hop to the listing''s URL: redirects and counts the visit'
+      description: 'Counts at most 1 visit per owner per day. The `X-Visit-Counted` header says whether this call counted — it is how the client knows without counting twice.
+
+        Returns: `302` with `Location` to the listing''s URL, and the `X-Visit-Counted` header.'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '`302` with `Location` to the listing''s URL, and the `X-Visit-Counted` header.'
+        '404':
+          description: The listing does not exist or is not live/low.
+      tags:
+      - Go
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.
