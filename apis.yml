@@ -20,6 +20,20 @@ tags:
   - Directory
   - Search & Discovery
   - x402
+  - Agentic Payments
+  - Community
+  - UGC
+tags_raw:
+  - Developer Tools
+  - API Registry
+  - Agent Registry
+  - MCP
+  - Agent Skills
+  - AI Agents
+  - Catalog
+  - Directory
+  - Search & Discovery
+  - x402
   - Agent Payments
   - Community
   - UGC
@@ -28,7 +42,6 @@ apis:
   name: Meta Agent Tools Admin API
   description: The Admin API from Meta Agent Tools — 5 operation(s) for admin.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Admin
   properties:
@@ -52,7 +65,6 @@ apis:
   name: Meta Agent Tools Apis.json API
   description: The Apis.json API from Meta Agent Tools — 1 operation(s) for apis.json.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - APIs.json
   tags_raw:
@@ -78,7 +90,6 @@ apis:
   name: Meta Agent Tools Auth API
   description: The Auth API from Meta Agent Tools — 4 operation(s) for auth.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Authentication
   tags_raw:
@@ -104,7 +115,6 @@ apis:
   name: Meta Agent Tools Billing API
   description: The Billing API from Meta Agent Tools — 1 operation(s) for billing.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Billing
   properties:
@@ -128,7 +138,6 @@ apis:
   name: Meta Agent Tools Comments API
   description: The Comments API from Meta Agent Tools — 1 operation(s) for comments.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Comments
   properties:
@@ -152,7 +161,6 @@ apis:
   name: Meta Agent Tools Contact API
   description: The Contact API from Meta Agent Tools — 1 operation(s) for contact.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Contact
   properties:
@@ -176,7 +184,6 @@ apis:
   name: Meta Agent Tools Credito API
   description: The Credito API from Meta Agent Tools — 1 operation(s) for credito.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Credito
   properties:
@@ -200,7 +207,6 @@ apis:
   name: Meta Agent Tools Facets API
   description: The Facets API from Meta Agent Tools — 1 operation(s) for facets.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Facets
   properties:
@@ -224,7 +230,6 @@ apis:
   name: Meta Agent Tools Feed.json API
   description: The Feed.json API from Meta Agent Tools — 1 operation(s) for feed.json.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Feed.json
   properties:
@@ -248,7 +253,6 @@ apis:
   name: Meta Agent Tools Feed.xml API
   description: The Feed.xml API from Meta Agent Tools — 1 operation(s) for feed.xml.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Feed.xml
   properties:
@@ -272,7 +276,6 @@ apis:
   name: Meta Agent Tools Fila API
   description: The Fila API from Meta Agent Tools — 1 operation(s) for fila.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Fila
   properties:
@@ -296,7 +299,6 @@ apis:
   name: Meta Agent Tools Go API
   description: The Go API from Meta Agent Tools — 1 operation(s) for go.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Go
   properties:
@@ -320,7 +322,6 @@ apis:
   name: Meta Agent Tools Guest API
   description: The Guest API from Meta Agent Tools — 1 operation(s) for guest.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Guest
   properties:
@@ -344,7 +345,6 @@ apis:
   name: Meta Agent Tools Health API
   description: The Health API from Meta Agent Tools — 1 operation(s) for health.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Health
   properties:
@@ -368,7 +368,6 @@ apis:
   name: Meta Agent Tools Listings API
   description: The Listings API from Meta Agent Tools — 4 operation(s) for listings.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Listings
   properties:
@@ -392,7 +391,6 @@ apis:
   name: Meta Agent Tools MCP API
   description: The Mcp API from Meta Agent Tools — 1 operation(s) for mcp.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - MCP
   tags_raw:
@@ -418,7 +416,6 @@ apis:
   name: Meta Agent Tools Me API
   description: The Me API from Meta Agent Tools — 3 operation(s) for me.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Me
   properties:
@@ -442,7 +439,6 @@ apis:
   name: Meta Agent Tools Meta Agent Tools API
   description: The Meta Agent Tools API from Meta Agent Tools — 1 operation(s) for meta agent tools.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Meta Agent Tools
   properties:
@@ -466,7 +462,6 @@ apis:
   name: Meta Agent Tools Metrics API
   description: The Metrics API from Meta Agent Tools — 1 operation(s) for metrics.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Metrics
   properties:
@@ -490,7 +485,6 @@ apis:
   name: Meta Agent Tools Okf API
   description: The Okf API from Meta Agent Tools — 1 operation(s) for okf.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Okf
   properties:
@@ -514,7 +508,6 @@ apis:
   name: Meta Agent Tools Servers API
   description: The Servers API from Meta Agent Tools — 1 operation(s) for servers.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Servers
   properties:
@@ -538,7 +531,6 @@ apis:
   name: Meta Agent Tools Visit API
   description: The Visit API from Meta Agent Tools — 1 operation(s) for visit.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - Visit
   properties:
@@ -562,7 +554,6 @@ apis:
   name: Meta Agent Tools .well Known API
   description: The .well Known API from Meta Agent Tools — 1 operation(s) for .well known.
   humanURL: https://agentalog.com/api/
-  baseURL: https://agentalog.com
   tags:
   - .well Known
   properties:

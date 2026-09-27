@@ -47,6 +47,21 @@ paths:
       - Servers
 components:
   schemas:
+    PaginaV01:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServidorV01'
+          description: The servers on this page.
+        metadata:
+          type: object
+          description: '`next_cursor` and `count`, in the spec''s format.'
+      required:
+      - servers
+      - metadata
+      description: The subregistry page, cursor-paginated as the v0.1 spec requires.
     ServidorV01:
       type: object
       properties:
@@ -85,21 +100,6 @@ components:
       - remotes
       - packages
       description: An MCP server in the Official Registry format (spec v0.1) — what a generic MCP client expects to read.
-    PaginaV01:
-      type: object
-      properties:
-        servers:
-          type: array
-          items:
-            $ref: '#/components/schemas/ServidorV01'
-          description: The servers on this page.
-        metadata:
-          type: object
-          description: '`next_cursor` and `count`, in the spec''s format.'
-      required:
-      - servers
-      - metadata
-      description: The subregistry page, cursor-paginated as the v0.1 spec requires.
   securitySchemes:
     bearerAuth:
       type: http

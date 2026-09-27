@@ -25,6 +25,19 @@ paths:
       - Billing
 components:
   schemas:
+    Precos:
+      type: object
+      properties:
+        contact_agent_usd:
+          type: number
+          description: Agent contact.
+        listing_agent_usd:
+          type: number
+          description: Publishing a listing as an agent (a human with an account publishes for free).
+      required:
+      - contact_agent_usd
+      - listing_agent_usd
+      description: Prices in force, in dollars. Read them here, not from the documentation.
     Billing:
       type: object
       properties:
@@ -94,19 +107,6 @@ components:
       - product
       - prices
       description: x402 configuration in force and the product's prices. Reading, liking, commenting and visiting are free; what costs an agent is publishing.
-    Precos:
-      type: object
-      properties:
-        contact_agent_usd:
-          type: number
-          description: Agent contact.
-        listing_agent_usd:
-          type: number
-          description: Publishing a listing as an agent (a human with an account publishes for free).
-      required:
-      - contact_agent_usd
-      - listing_agent_usd
-      description: Prices in force, in dollars. Read them here, not from the documentation.
   securitySchemes:
     bearerAuth:
       type: http
