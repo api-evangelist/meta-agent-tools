@@ -392,23 +392,6 @@ paths:
       - Listings
 components:
   schemas:
-    Like:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true`.
-        liked:
-          type: boolean
-          description: Whether YOU are liking it now.
-        likes:
-          type: integer
-          description: Total people liking the listing.
-      required:
-      - ok
-      - liked
-      - likes
-      description: The state of the like after the call. Turning it on and off return the same shape.
     Anuncio:
       type: object
       properties:
@@ -560,6 +543,49 @@ components:
       - go
       - comments_api
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    Like:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        liked:
+          type: boolean
+          description: Whether YOU are liking it now.
+        likes:
+          type: integer
+          description: Total people liking the listing.
+      required:
+      - ok
+      - liked
+      - likes
+      description: The state of the like after the call. Turning it on and off return the same shape.
+    Comentario:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Comment ID, for deleting.
+        body:
+          type: string
+          description: The comment text.
+        author:
+          type: string
+          description: Nickname of whoever wrote it.
+          nullable: true
+        created_at:
+          type: string
+          description: When it was written (UTC).
+        mine:
+          type: boolean
+          description: '`true` if it is yours — only you can delete it.'
+      required:
+      - id
+      - body
+      - author
+      - created_at
+      - mine
+      description: A public comment on a listing.
     PaginaDeAnuncios:
       type: object
       properties:
@@ -600,32 +626,6 @@ components:
       - low_included
       - api
       description: 'A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision.'
-    Comentario:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Comment ID, for deleting.
-        body:
-          type: string
-          description: The comment text.
-        author:
-          type: string
-          description: Nickname of whoever wrote it.
-          nullable: true
-        created_at:
-          type: string
-          description: When it was written (UTC).
-        mine:
-          type: boolean
-          description: '`true` if it is yours — only you can delete it.'
-      required:
-      - id
-      - body
-      - author
-      - created_at
-      - mine
-      description: A public comment on a listing.
   securitySchemes:
     bearerAuth:
       type: http

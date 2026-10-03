@@ -27,20 +27,6 @@ paths:
       - Fila
 components:
   schemas:
-    EstadoFila:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true` when there is a snapshot.
-        fila:
-          allOf:
-          - $ref: '#/components/schemas/RetratoFila'
-          description: The queue's numbers.
-      required:
-      - ok
-      - fila
-      description: 'The snapshot of the enrichment queue: how many listings have been checked and what is known about them.'
     RetratoFila:
       type: object
       properties:
@@ -74,6 +60,20 @@ components:
       - estados
       - motivos
       description: Counters of the enrichment queue, pushed by the robot that checks the repositories.
+    EstadoFila:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` when there is a snapshot.
+        fila:
+          allOf:
+          - $ref: '#/components/schemas/RetratoFila'
+          description: The queue's numbers.
+      required:
+      - ok
+      - fila
+      description: 'The snapshot of the enrichment queue: how many listings have been checked and what is known about them.'
   securitySchemes:
     bearerAuth:
       type: http
