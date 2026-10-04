@@ -246,15 +246,29 @@ paths:
       - Admin
 components:
   schemas:
-    Ok:
+    Carga:
       type: object
       properties:
-        ok:
-          type: boolean
-          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+        fontes:
+          type: array
+          items:
+            type: object
+          description: Each source with its last batch and the count it brought.
+        falhas:
+          type: array
+          items:
+            type: object
+          description: Import failures not yet marked as seen.
+        runs:
+          type: array
+          items:
+            type: object
+          description: The recent runs, newest first.
       required:
-      - ok
-      description: Write confirmation with no body of its own to return.
+      - fontes
+      - falhas
+      - runs
+      description: The state of the catalog's load sources — where the listings come from and when they came.
     Anuncio:
       type: object
       properties:
@@ -406,29 +420,15 @@ components:
       - go
       - comments_api
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
-    Carga:
+    Ok:
       type: object
       properties:
-        fontes:
-          type: array
-          items:
-            type: object
-          description: Each source with its last batch and the count it brought.
-        falhas:
-          type: array
-          items:
-            type: object
-          description: Import failures not yet marked as seen.
-        runs:
-          type: array
-          items:
-            type: object
-          description: The recent runs, newest first.
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
       required:
-      - fontes
-      - falhas
-      - runs
-      description: The state of the catalog's load sources — where the listings come from and when they came.
+      - ok
+      description: Write confirmation with no body of its own to return.
   securitySchemes:
     bearerAuth:
       type: http

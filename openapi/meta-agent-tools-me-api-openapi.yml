@@ -157,41 +157,6 @@ components:
       - falhas
       - runs
       description: The state of the catalog's load sources — where the listings come from and when they came.
-    PreferenciasUi:
-      type: object
-      properties:
-        prefs:
-          type: object
-          description: The stored preferences, as the interface wrote them. `{}` when nothing was ever stored.
-        api:
-          type: string
-          description: Absolute URL of this route.
-      required:
-      - prefs
-      - api
-      description: 'What the person set up on the screen and needs to survive an F5: filter selection, active tab and open item tabs. The content is OPAQUE — the server does not interpret the JSON, it only stores and returns it, so the screen can change fields without a database migration.'
-    Ok:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
-      required:
-      - ok
-      description: Write confirmation with no body of its own to return.
-    Conta:
-      type: object
-      properties:
-        id:
-          type: string
-          description: ID of the account.
-        email:
-          type: string
-          description: E-mail confirmed by code.
-      required:
-      - id
-      - email
-      description: The person behind the session.
     Anuncio:
       type: object
       properties:
@@ -343,6 +308,41 @@ components:
       - go
       - comments_api
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    Conta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of the account.
+        email:
+          type: string
+          description: E-mail confirmed by code.
+      required:
+      - id
+      - email
+      description: The person behind the session.
+    PreferenciasUi:
+      type: object
+      properties:
+        prefs:
+          type: object
+          description: The stored preferences, as the interface wrote them. `{}` when nothing was ever stored.
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - prefs
+      - api
+      description: 'What the person set up on the screen and needs to survive an F5: filter selection, active tab and open item tabs. The content is OPAQUE — the server does not interpret the JSON, it only stores and returns it, so the screen can change fields without a database migration.'
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+      required:
+      - ok
+      description: Write confirmation with no body of its own to return.
   securitySchemes:
     bearerAuth:
       type: http
