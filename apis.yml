@@ -7,7 +7,7 @@ description: >-
 url: https://raw.githubusercontent.com/api-evangelist/meta-agent-tools/refs/heads/main/apis.yml
 image: https://agentalog.com/icon.svg
 created: '2026-09-05'
-modified: '2026-09-05'
+modified: '2026-10-06'
 specificationVersion: '0.21'
 tags:
   - Developer Tools
@@ -583,6 +583,8 @@ generated:
   confidence: 97
   at: '2026-09-05T11:49:17.227Z'
 common:
+- url: https://agentalog.com/feed.xml
+  type: BlogRSS
 - type: MCPServer
   url: mcp/meta-agent-tools-mcp.yml
 - type: Overlay
