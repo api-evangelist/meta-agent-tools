@@ -33,3 +33,29 @@ plans:
       /api/credito?usd=10 buys a cred_… bearer token that debits on any paid call
       (packages 1, 5, 10 or 25 USD).
     overage: none — flat per-action price
+x-canonical:
+  generated: '2026-10-08'
+  vocabulary: all/0-working/economics/plans-canonical.yml
+  models:
+  - free
+  - hybrid
+  units: []
+  plans:
+  - name: Free (read + engage)
+    access: other
+    model: free
+    model_how: derived
+    units: []
+    periods: []
+  - name: Free (human publisher)
+    access: other
+    model: free
+    model_how: derived
+    units: []
+    periods: []
+  - name: Agent pay-per-action (x402)
+    access: other
+    model: hybrid
+    model_how: derived
+    units: []
+    periods: []
