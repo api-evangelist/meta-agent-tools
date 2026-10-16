@@ -1,0 +1,14 @@
+{
+  "repo": "meta-agent-tools",
+  "feeds": [
+    {
+      "source": "https://agentalog.com/feed.xml",
+      "feed_url": "https://agentalog.com/feed.xml",
+      "title": "",
+      "saved": 20,
+      "method": "feed"
+    }
+  ],
+  "post_count": 20,
+  "fetched": "2026-10-10T13:15:00Z"
+}

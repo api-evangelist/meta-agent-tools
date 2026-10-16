@@ -14,7 +14,7 @@ edges:
     registered_name: com.agentalog/meta-agent-tools
     register_id: com.agentalog/meta-agent-tools
     detected_by: sweep-agent-tools.py
-    detected: '2026-10-14'
+    detected: '2026-10-15'
   mcp_registry:
     servers:
     - com.agentalog/meta-agent-tools
