@@ -134,29 +134,6 @@ paths:
       - Me
 components:
   schemas:
-    Carga:
-      type: object
-      properties:
-        fontes:
-          type: array
-          items:
-            type: object
-          description: Each source with its last batch and the count it brought.
-        falhas:
-          type: array
-          items:
-            type: object
-          description: Import failures not yet marked as seen.
-        runs:
-          type: array
-          items:
-            type: object
-          description: The recent runs, newest first.
-      required:
-      - fontes
-      - falhas
-      - runs
-      description: The state of the catalog's load sources — where the listings come from and when they came.
     Anuncio:
       type: object
       properties:
@@ -308,19 +285,6 @@ components:
       - go
       - comments_api
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
-    Conta:
-      type: object
-      properties:
-        id:
-          type: string
-          description: ID of the account.
-        email:
-          type: string
-          description: E-mail confirmed by code.
-      required:
-      - id
-      - email
-      description: The person behind the session.
     PreferenciasUi:
       type: object
       properties:
@@ -334,6 +298,29 @@ components:
       - prefs
       - api
       description: 'What the person set up on the screen and needs to survive an F5: filter selection, active tab and open item tabs. The content is OPAQUE — the server does not interpret the JSON, it only stores and returns it, so the screen can change fields without a database migration.'
+    Carga:
+      type: object
+      properties:
+        fontes:
+          type: array
+          items:
+            type: object
+          description: Each source with its last batch and the count it brought.
+        falhas:
+          type: array
+          items:
+            type: object
+          description: Import failures not yet marked as seen.
+        runs:
+          type: array
+          items:
+            type: object
+          description: The recent runs, newest first.
+      required:
+      - fontes
+      - falhas
+      - runs
+      description: The state of the catalog's load sources — where the listings come from and when they came.
     Ok:
       type: object
       properties:
@@ -343,6 +330,19 @@ components:
       required:
       - ok
       description: Write confirmation with no body of its own to return.
+    Conta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID of the account.
+        email:
+          type: string
+          description: E-mail confirmed by code.
+      required:
+      - id
+      - email
+      description: The person behind the session.
   securitySchemes:
     bearerAuth:
       type: http

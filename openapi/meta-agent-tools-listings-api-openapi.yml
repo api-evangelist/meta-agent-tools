@@ -392,6 +392,89 @@ paths:
       - Listings
 components:
   schemas:
+    Comentario:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Comment ID, for deleting.
+        body:
+          type: string
+          description: The comment text.
+        author:
+          type: string
+          description: Nickname of whoever wrote it.
+          nullable: true
+        created_at:
+          type: string
+          description: When it was written (UTC).
+        mine:
+          type: boolean
+          description: '`true` if it is yours — only you can delete it.'
+      required:
+      - id
+      - body
+      - author
+      - created_at
+      - mine
+      description: A public comment on a listing.
+    Like:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        liked:
+          type: boolean
+          description: Whether YOU are liking it now.
+        likes:
+          type: integer
+          description: Total people liking the listing.
+      required:
+      - ok
+      - liked
+      - likes
+      description: The state of the like after the call. Turning it on and off return the same shape.
+    PaginaDeAnuncios:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Anuncio'
+          description: The listings on this page.
+        limit:
+          type: integer
+          description: Page size applied.
+        offset:
+          type: integer
+          description: Offset applied.
+        next_offset:
+          type: integer
+          description: Offset of the next page; `null` when there is no more.
+          nullable: true
+        low_count:
+          type: integer
+          description: How many `low` listings match `q` (cap 200). Zero without a term.
+        low_capped:
+          type: boolean
+          description: '`true` when the count hit the cap — there are at least that many.'
+        low_included:
+          type: boolean
+          description: '`true` when `low=1` mixed the tail into this page.'
+        api:
+          type: string
+          description: Absolute URL of this listing.
+      required:
+      - items
+      - limit
+      - offset
+      - next_offset
+      - low_count
+      - low_capped
+      - low_included
+      - api
+      description: 'A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision.'
     Anuncio:
       type: object
       properties:
@@ -543,89 +626,6 @@ components:
       - go
       - comments_api
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
-    Like:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true`.
-        liked:
-          type: boolean
-          description: Whether YOU are liking it now.
-        likes:
-          type: integer
-          description: Total people liking the listing.
-      required:
-      - ok
-      - liked
-      - likes
-      description: The state of the like after the call. Turning it on and off return the same shape.
-    Comentario:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Comment ID, for deleting.
-        body:
-          type: string
-          description: The comment text.
-        author:
-          type: string
-          description: Nickname of whoever wrote it.
-          nullable: true
-        created_at:
-          type: string
-          description: When it was written (UTC).
-        mine:
-          type: boolean
-          description: '`true` if it is yours — only you can delete it.'
-      required:
-      - id
-      - body
-      - author
-      - created_at
-      - mine
-      description: A public comment on a listing.
-    PaginaDeAnuncios:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Anuncio'
-          description: The listings on this page.
-        limit:
-          type: integer
-          description: Page size applied.
-        offset:
-          type: integer
-          description: Offset applied.
-        next_offset:
-          type: integer
-          description: Offset of the next page; `null` when there is no more.
-          nullable: true
-        low_count:
-          type: integer
-          description: How many `low` listings match `q` (cap 200). Zero without a term.
-        low_capped:
-          type: boolean
-          description: '`true` when the count hit the cap — there are at least that many.'
-        low_included:
-          type: boolean
-          description: '`true` when `low=1` mixed the tail into this page.'
-        api:
-          type: string
-          description: Absolute URL of this listing.
-      required:
-      - items
-      - limit
-      - offset
-      - next_offset
-      - low_count
-      - low_capped
-      - low_included
-      - api
-      description: 'A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision.'
   securitySchemes:
     bearerAuth:
       type: http
