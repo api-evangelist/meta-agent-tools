@@ -1,0 +1,175 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Internal API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Internal
+paths:
+  /api/internal/moderation:
+    get:
+      operationId: get_api_internal_moderation
+      summary: Reads one new community listing for automatic review on c3
+      description: 'MODERATION_TOKEN only. Returns the newest pending community listing not yet analyzed, with a snapshot bound to its exact content. No admin or imported catalog access.
+
+        Returns: { ok, item }'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: '{ ok, item }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Request accepted.
+                  item:
+                    type: object
+                    description: Listing and SHA-256 snapshot, or null when the queue is empty.
+                required:
+                - ok
+                - item
+        '401':
+          description: MODERATION_TOKEN required.
+      tags:
+      - Internal
+    post:
+      operationId: post_api_internal_moderation
+      summary: Confirms a bounded automatic review result
+      description: 'MODERATION_TOKEN only. `approve` is confined to a pending community listing with an HTTPS URL. The review checks for concrete signs of fraud, malware or data theft. `review` leaves the listing private and sends the owner the reason. The URL, update time and content snapshot must still match.
+
+        Returns: { ok, decision, id, owner_notified }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Pending listing ID.
+                url:
+                  type: string
+                  description: Exact URL read from the queue.
+                updated_at:
+                  type: string
+                  description: Listing update time read from the queue.
+                snapshot:
+                  type: string
+                  description: SHA-256 content snapshot read from the queue, including installation and source fields.
+                decision:
+                  type: string
+                  description: approve or review.
+                reason:
+                  type: string
+                  description: Required for review; maximum 300 characters.
+                description:
+                  type: string
+                  description: Optional text for an empty listing body. Existing author text is preserved. The automatic classifier does not rewrite the description.
+                budget_notice:
+                  type: string
+                  description: near_limit only when the monthly moderation budget crosses 80%.
+              required:
+              - id
+              - url
+              - updated_at
+              - snapshot
+              - decision
+            example:
+              id: lst_ID
+              url: https://example.com/tools
+              updated_at: '2026-09-27 19:00:00'
+              snapshot: SHA256
+              decision: review
+              reason: Cannot verify the source.
+      responses:
+        '200':
+          description: '{ ok, decision, id, owner_notified }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Decision recorded.
+                  decision:
+                    type: string
+                    description: approve or review.
+                  id:
+                    type: string
+                    description: Listing ID.
+                  owner_notified:
+                    type: boolean
+                    description: The owner's mail server accepted the result notice.
+                required:
+                - ok
+                - decision
+                - id
+                - owner_notified
+        '400':
+          description: Invalid result or approval outside the narrow scope.
+        '401':
+          description: MODERATION_TOKEN required.
+        '409':
+          description: Listing changed or was already reviewed.
+      tags:
+      - Internal
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

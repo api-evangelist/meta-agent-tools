@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Meta Agent Tools Listings API
+  title: Agentalog — Agent Auto Log Listings API
   version: 1.0.0
-  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
 servers:
 - url: https://agentalog.com
 tags:
@@ -11,10 +11,10 @@ paths:
   /api/listings:
     get:
       operationId: list_listings
-      summary: 'The public mosaic: paginated search of the catalog''s live listings'
-      description: 'Only `live` in the mosaic. With `q`, `low_count` says how many `low` listings (few stars or no clear license) match the term — LIKE with a cap of 200. `low=1` includes that tail; without `q` the parameter is ignored.
+      summary: 'The public mosaic: paginated search of the catalog''s listings, the lower-signal…'
+      description: '`live` listings first and the `low` tail (few stars or no clear license) after them in every order — `low=0` leaves the tail out. To walk everything, follow `next`: without `q` it is a cursor (`next_cursor`, keyset on the order''s index) and has no ceiling; every listing also has an HTML page at `/l/:id` and the shards of `/sitemap-listings.xml` list them all. `q` runs on a full-text index (FTS5, bm25) kept in the same transaction as every text write. With `q` and `low=0`, `low_count` says how many `low` listings the filter left out — LIKE with a cap of 200. The query is mapped onto kind/topic/transport filters unless `interpret=0`.
 
-        Returns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}], limit, offset, next_offset, low_count, low_capped, low_included, api }'
+        Returns: { items[{seguranca_nivel?,seguranca_estado?,seguranca_api?,moderation?,id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,linguagem,licenca,repo_topics,repo_slug,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api,readme_api?,historico?,readme_fonte?,readme_bytes,readme_sha,readme_em,payload}], limit, offset, next_offset, next_cursor, next, low_count, low_capped, low_included, interpretacao, api }'
       security: []
       parameters:
       - name: q
@@ -22,8 +22,16 @@ paths:
         required: false
         schema:
           type: string
-        description: Free text over the name, the tagline and the description.
-        example: postgres
+        description: 'Free text over the name, the tagline, the description, the origin identifier and the README excerpt: every word (up to six, 2+ letters, accents ignored) must match; ranked by bm25 with the name weighing most (10), then tagline (5), identifier (3), description (2), README excerpt (1); ties by stars. Kind, topic and transport words become filters. The `low` tail is in the same index.'
+        example: browser testing
+      - name: interpret
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '0'
+        description: '`0` disables query understanding and searches the raw string.'
       - name: kind
         in: query
         required: false
@@ -45,20 +53,29 @@ paths:
         required: false
         schema:
           type: string
-          default: recent
+          default: relevancia when q is set, recent otherwise
           enum:
+          - relevancia
           - recent
+          - stars
           - likes
           - visits
-        description: Result order.
+          - nome
+        description: Result order. Without it, a query is ranked by relevance — bm25 over the full-text index (name 10, tagline 5, identifier 3, description 2, README excerpt 1) multiplied by 1 + 0.05·ln(1 + stars) + 0.1 if pushed in the last 180 days + 0.1 if a README was collected; ties by stars — and a plain listing by arrival.
       - name: low
         in: query
         required: false
         schema:
           type: string
           enum:
-          - '1'
-        description: '`1` includes `low` listings in the result. Only valid together with `q`.'
+          - '0'
+        description: '`0` leaves the `low` tail out; by default it comes after the `live` listings in every order.'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor from `next_cursor` of the previous page (orders `recent`, `stars` and `nome`, without `q`). With it, `offset` is ignored. A cursor from another order or a malformed one restarts at the first page.
       - name: limit
         in: query
         required: false
@@ -72,24 +89,107 @@ paths:
         schema:
           type: integer
           default: 0
-        description: How many listings to skip. Use `next_offset` from the previous response.
+        description: 'How many listings to skip. No ceiling since 2026-09-13, but the database reads every skipped row: to walk the catalog, follow `next` (cursor) instead.'
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Repository code languages, comma-separated. Preserve case, for example Python.
+      - name: license
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Repository licenses, comma-separated, for example MIT,Apache-2.0. Preserve case.
+      - name: min_stars
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Minimum repository stars, from 0 to 999999999.
+      - name: min_forks
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Minimum forks of a repository with collected activity data.
+      - name: min_prs
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Minimum open pull requests of a repository with collected activity data.
+      - name: max_prs
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Maximum open pull requests of a repository with collected activity data.
+      - name: added_since
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Catalog arrival on or after YYYY-MM-DD. This is not the original publication date.
+      - name: pushed_since
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Last repository code push on or after YYYY-MM-DD.
+      - name: has_code
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '0'
+          - '1'
+        description: Whether a repository link is available. This does not certify the code.
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
       responses:
         '200':
-          description: '{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}], limit, offset, next_offset, low_count, low_capped, low_included, api }'
+          description: '{ items[{seguranca_nivel?,seguranca_estado?,seguranca_api?,moderation?,id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,linguagem,licenca,repo_topics,repo_slug,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api,readme_api?,historico?,readme_fonte?,readme_bytes,readme_sha,readme_em,payload}], limit, offset, next_offset, next_cursor, next, low_count, low_capped, low_included, interpretacao, api }'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginaDeAnuncios'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
       tags:
       - Listings
     post:
       operationId: create_listing
       summary: Registers an MCP server, a skill or a plugin in the catalog.
-      description: 'Two doors to the same action. Human with a session: free, 1 per day, at most 3 in the queue. Agent (with or without a guest): **402 with `accepts[]`**, $0.10 — pay and repeat. For a skill, the `SKILL.md` URL is enough; the rest is checked. **Validates before charging:** a refused body (400) and an exhausted quota (429) come BEFORE the 402, so no payment settles for a listing already known not to get in. A valid body without payment keeps receiving the 402 with the price.
+      description: 'Automatic review approves supported low-risk MCP listings; uncertain cases wait for a person. Poll `status_api` (`GET /api/listings/:id/status`, no credential) to learn the decision. A person or agent can submit without an account. While billing is off, no payment is required. Each owner can submit once a day and keep up to three submissions in the queue. For a skill, provide its SKILL.md URL. If agent billing is enabled, the reference price is US$ 0.10 per submission, paid through x402 or prepaid credit. The service checks the body and quota before charging. An invalid body returns 400; an exhausted quota returns 429.
 
-        Returns: { ok, id, status }'
+        Returns: { ok, id, status, status_api }'
       security:
+      - globalAccount: []
       - bearerAuth: []
+      - x402: []
       requestBody:
         required: true
         content:
@@ -100,9 +200,14 @@ paths:
                 kind:
                   type: string
                   description: What is being registered.
+                  enum:
+                  - mcp
+                  - skill
+                  - plugin
+                  - okf
                 url:
                   type: string
-                  description: MCP endpoint, SKILL.md URL or the plugin's repository.
+                  description: MCP endpoint, SKILL.md URL, the plugin's repository or the OKF bundle's `index.md`. For an OKF bundle on a domain you control, `POST /api/okf/ping` is free.
                 name:
                   type: string
                   description: Display name; without it, taken from the source.
@@ -126,7 +231,7 @@ paths:
               url: https://example.com/mcp
       responses:
         '200':
-          description: '{ ok, id, status }'
+          description: '{ ok, id, status, status_api }'
           content:
             application/json:
               schema:
@@ -141,14 +246,18 @@ paths:
                   status:
                     type: string
                     description: 'Always `pending`: everything goes through the queue before turning live.'
+                  status_api:
+                    type: string
+                    description: Where to poll for the review, with no credential (`GET /api/listings/:id/status`).
                 required:
                 - ok
                 - id
                 - status
+                - status_api
         '400':
           description: '`kind` or `url` missing, invalid URL, URL that does not answer or refused field.'
         '402':
-          description: 'Quota exceeded. The response carries `accepts[]` (x402, USDC on Base): pay and repeat the same call with `X-PAYMENT`.'
+          description: 'Payment required. The x402 terms (USDC on Base) come in the `PAYMENT-REQUIRED` header and in `accepts[]`: pay and repeat the same call with `PAYMENT-SIGNATURE` (x402 v2) or `X-PAYMENT` (v1). A standard x402 client such as `@x402/fetch` does this for you.'
         '429':
           description: 1 per day, at most 3 pending — applies to both doors, and is checked before charging.
         '502':
@@ -159,7 +268,7 @@ paths:
     get:
       operationId: get_listing
       summary: One listing's page. The owner sees their own even when pending or hidden
-      description: 'Returns: { id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api }'
+      description: 'Returns: { seguranca_nivel?, seguranca_estado?, seguranca_api?, moderation?, id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, linguagem, licenca, repo_topics, repo_slug, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api, readme_api?, historico?, readme_fonte?, readme_bytes, readme_sha, readme_em, payload }'
       security: []
       parameters:
       - name: id
@@ -167,21 +276,47 @@ paths:
         required: true
         schema:
           type: string
+        description: Listing ID, from `Anuncio.id`.
+        example: ID
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
       responses:
         '200':
-          description: '{ id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api }'
+          description: '{ seguranca_nivel?, seguranca_estado?, seguranca_api?, moderation?, id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, linguagem, licenca, repo_topics, repo_slug, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api, readme_api?, historico?, readme_fonte?, readme_bytes, readme_sha, readme_em, payload }'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Anuncio'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
         '404':
           description: The listing does not exist, or it is not yours and is not live/low.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
       tags:
       - Listings
     patch:
       operationId: patch_api_listings_by_id
-      summary: Edits a listing of yours. Changing the URL sends it back to the queue
-      description: 'The URL is what moderation looks at; swapping it after approval would bypass the queue, so the listing goes back to `pending`.
+      summary: Edits a listing of yours.
+      description: 'The URL and public text are what moderation checks; changing either after approval sends the listing back to `pending`.
 
         Returns: { ok, id, status }'
       security:
@@ -192,6 +327,8 @@ paths:
         required: true
         schema:
           type: string
+        description: ID of the listing to edit.
+        example: ID
       requestBody:
         required: true
         content:
@@ -213,7 +350,7 @@ paths:
                   description: New category.
                 url:
                   type: string
-                  description: New URL — changing this sends the listing back to `pending`.
+                  description: New URL — changing this sends the listing back to `pending`, as with public text edits.
             example:
               tagline: …
       responses:
@@ -232,7 +369,7 @@ paths:
                     description: ID of the edited listing.
                   status:
                     type: string
-                    description: State after the edit; back to `pending` if the URL changed.
+                    description: State after the edit; back to `pending` if public content changed.
                 required:
                 - ok
                 - id
@@ -243,6 +380,57 @@ paths:
           description: No credential, or an invalid one. See this endpoint's auth.
         '404':
           description: The listing is not yours or does not exist.
+      tags:
+      - Listings
+  /api/listings/{id}/readme:
+    get:
+      operationId: get_listing_readme
+      summary: README collected from the listing's repository, served on open
+      description: 'The text lives in R2 (`mural-coleta`). This call does not write and does not fetch GitHub. Same visibility as the listing page. Call it only when the listing page carries `readme_api`: a page without it has no README collected, and this route answers 404.
+
+        Returns: { markdown, bytes, sha, repo_slug, fonte, truncated, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Listing ID, from `Anuncio.id`.
+        example: ID
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ markdown, bytes, sha, repo_slug, fonte, truncated, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readme'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: The listing does not exist, is not visible, or no README was collected.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
       tags:
       - Listings
   /api/listings/{id}/comments:
@@ -259,6 +447,8 @@ paths:
         required: true
         schema:
           type: string
+        description: ID of the listing.
+        example: ID
       responses:
         '200':
           description: '{ items[{id,body,author,created_at,mine}], total }'
@@ -294,6 +484,8 @@ paths:
         required: true
         schema:
           type: string
+        description: ID of the listing to comment on.
+        example: ID
       requestBody:
         required: true
         content:
@@ -342,7 +534,7 @@ paths:
   /api/listings/{id}/like:
     post:
       operationId: like_listing
-      summary: 'Likes the listing. Calling again does not add up: the counter counts people'
+      summary: Likes the listing; DELETE undoes it.
       description: 'Returns: { ok, liked, likes }'
       security:
       - bearerAuth: []
@@ -352,6 +544,8 @@ paths:
         required: true
         schema:
           type: string
+        description: ID of the listing to like.
+        example: ID
       responses:
         '200':
           description: '{ ok, liked, likes }'
@@ -377,6 +571,8 @@ paths:
         required: true
         schema:
           type: string
+        description: ID of the listing to unlike.
+        example: ID
       responses:
         '200':
           description: '{ ok, liked, likes }'
@@ -390,100 +586,282 @@ paths:
           description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
       tags:
       - Listings
+  /api/listings/{id}/security:
+    get:
+      operationId: listing_security
+      summary: 'Security review of a remote MCP server or SKILL.md: level, measured signals…'
+      description: 'We visit remote MCP servers: `initialize` and `tools/list`, without credentials or tool calls, again 7 days after a success. A failure needs a second check. MCP signals: dns_morto, sem_https, tls_invalido, tunel, nao_responde, nao_mcp, texto_suspeito, redireciona_fora, repo_arquivado, repo_parado, dominio_recente, login, bloqueado. For skills, `tipo: skill` identifies a static SKILL.md review. It flags secret reads, download-and-execute commands, external uploads, invisible characters, long encoded text and broad allowed-tools. `revisao.achados` supplies the path, original line, excerpt and context. Examples and prohibitions do not raise the level. Excerpts hide sensitive values. The review does not run commands or follow references. Supported source: public raw.githubusercontent.com SKILL.md. Watched, visited, starred and new skills get priority within the shared GitHub governor and a daily cap. Unread or unsupported skills remain explicitly unchecked. Local MCP servers and plugins answer `nao_remoto`. No request fetches a third-party source. Cached for 5 minutes.
+
+        Returns: { id, conferido, motivo?, nivel, tipo?, revisao?, fonte?, caminho?, vigiavel?, sinais, servidor?, dominio?, ferramentas?, verificado_em?, proxima_em?, mudou_em?, eventos?, aviso, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Listing ID, from `Anuncio.id`.
+        example: ID
+      - name: lang
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Language of the `aviso` sentence: `en` (default) or `pt`.'
+        example: pt
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ id, conferido, motivo?, nivel, tipo?, revisao?, fonte?, caminho?, vigiavel?, sinais, servidor?, dominio?, ferramentas?, verificado_em?, proxima_em?, mudou_em?, eventos?, aviso, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seguranca'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: The listing does not exist or is not visible.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Listings
+  /api/listings/{id}/tools:
+    get:
+      operationId: listing_tools
+      summary: The tools and instructions a remote MCP server announced at its last check
+      description: 'The announced manifest, normalized: each tool''s name, title, description (up to 4,000 characters), input schema (null above 8,000 characters) and protocol annotations, plus the server instructions. `capacidades` and `suspeitas` come from the current rules, applied when you read. Reading this endpoint never contacts the server. Cached for 5 minutes.
+
+        Returns: { id, sha, verificado_em, mudou_em, instrucoes, ferramentas, capacidades, suspeitas, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Listing ID, from `Anuncio.id`.
+        example: ID
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ id, sha, verificado_em, mudou_em, instrucoes, ferramentas, capacidades, suspeitas, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FerramentasAnunciadas'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: The listing does not exist or is not visible (`not_found`), or its tools were not read yet (`tools_not_read`).
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Listings
+  /api/listings/{id}/status:
+    get:
+      operationId: listing_status
+      summary: Moderation state of a listing — how the submitter polls for approval, with no…
+      description: 'Every submission is born `pending`. An automatic safety check looks for concrete signs of fraud, malware or data theft. Listings without these signs can be approved. A risk finding or an unreadable source keeps the listing private for a person to review. This is the receipt you poll after `POST /api/listings` (its response carries this URL as `status_api`). Only the decision comes back, never the unreviewed content: the id (`lst_…`, unguessable) is all it takes, and the page itself keeps its rule — owner only until it is public. Answers are cached for 60 s per point of presence: poll every few minutes, not every second.
+
+        Returns: { id, status, public, message, reason?, api, status_api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Listing ID, from the `id` of the `POST /api/listings` response.
+        example: ID
+      responses:
+        '200':
+          description: '{ id, status, public, message, reason?, api, status_api }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Listing ID.
+                  status:
+                    type: string
+                    description: Moderation state. `pending` is waiting; `live` and `low` are approved; `hidden` and `blocked` are not published.
+                    enum:
+                    - pending
+                    - live
+                    - low
+                    - hidden
+                    - blocked
+                  public:
+                    type: boolean
+                    description: '`true` when the listing is reachable in the catalog (`live` or `low`).'
+                  message:
+                    type: string
+                    description: What the state means and what to do next.
+                  reason:
+                    type: string
+                    description: Why it was hidden or blocked, when the moderator left a reason. Absent otherwise.
+                  api:
+                    type: string
+                    description: 'The listing''s page (`GET /api/listings/:id`): the owner reads it with the token that created it; everybody else once it is public.'
+                  status_api:
+                    type: string
+                    description: This URL, to poll again.
+                required:
+                - id
+                - status
+                - public
+                - message
+                - api
+                - status_api
+        '404':
+          description: No listing with this id.
+      tags:
+      - Listings
+  /api/listings/{id}/history:
+    get:
+      operationId: listing_history
+      summary: 'Timeline of the listing''s repository: the last events (stale, gone, renamed…'
+      description: 'The listing page carries the same list as `historico`; updates may be cached for up to 15 minutes. An empty list means no change since the series began — the listing still exists. Stale means no push for 12 months. Reading this endpoint does not refresh the record.
+
+        Returns: { id, historico, gerado_em, ttl_s, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Listing ID, from `Anuncio.id`.
+        example: ID
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ id, historico, gerado_em, ttl_s, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Historico'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: The listing does not exist or is not visible.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Listings
 components:
   schemas:
-    Comentario:
+    Historico:
       type: object
       properties:
         id:
           type: string
-          description: Comment ID, for deleting.
-        body:
-          type: string
-          description: The comment text.
-        author:
-          type: string
-          description: Nickname of whoever wrote it.
-          nullable: true
-        created_at:
-          type: string
-          description: When it was written (UTC).
-        mine:
-          type: boolean
-          description: '`true` if it is yours — only you can delete it.'
-      required:
-      - id
-      - body
-      - author
-      - created_at
-      - mine
-      description: A public comment on a listing.
-    Like:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true`.
-        liked:
-          type: boolean
-          description: Whether YOU are liking it now.
-        likes:
-          type: integer
-          description: Total people liking the listing.
-      required:
-      - ok
-      - liked
-      - likes
-      description: The state of the like after the call. Turning it on and off return the same shape.
-    PaginaDeAnuncios:
-      type: object
-      properties:
-        items:
+          description: Listing ID.
+        historico:
           type: array
           items:
-            $ref: '#/components/schemas/Anuncio'
-          description: The listings on this page.
-        limit:
+            type: object
+          description: 'Newest first, at most 5: `{ em, tipo, de?, para? }` — `tipo` is `abandono` (no push for 12 months), `sumiu`, `renomeado`, `readme_mudou` or `manifesto_mudou`; `de`/`para` only for the state events.'
+        gerado_em:
+          type: string
+          description: Reference date of this history (UTC).
+        ttl_s:
           type: integer
-          description: Page size applied.
-        offset:
-          type: integer
-          description: Offset applied.
-        next_offset:
-          type: integer
-          description: Offset of the next page; `null` when there is no more.
-          nullable: true
-        low_count:
-          type: integer
-          description: How many `low` listings match `q` (cap 200). Zero without a term.
-        low_capped:
-          type: boolean
-          description: '`true` when the count hit the cap — there are at least that many.'
-        low_included:
-          type: boolean
-          description: '`true` when `low=1` mixed the tail into this page.'
+          description: Edge cache life of the slice, in seconds.
         api:
           type: string
-          description: Absolute URL of this listing.
+          description: Absolute URL of this route.
       required:
-      - items
-      - limit
-      - offset
-      - next_offset
-      - low_count
-      - low_capped
-      - low_included
+      - id
+      - historico
+      - gerado_em
+      - ttl_s
       - api
-      description: 'A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision.'
+      description: 'The repository''s timeline behind a listing: the last events derived from continuous collection (ROADMAP-MAT F7).'
     Anuncio:
       type: object
       properties:
+        seguranca_nivel:
+          type: string
+          description: 'Remote MCP or skill check: risco, atencao, ok, or empty when not checked.'
+        seguranca_estado:
+          type: string
+          description: Remote MCP probe result. login means the check could not read actions without credentials; ok alone does not mean full coverage.
+        seguranca_api:
+          type: string
+          description: URL of the measured security results.
+        moderation:
+          type: object
+          description: 'Admin responses only: reason and reviewed_at from automatic moderation. Empty values mean no automatic decision.'
         id:
           type: string
           description: Listing ID; it is the key across the whole API.
         kind:
           type: string
           description: What this listing is.
+          enum:
+          - mcp
+          - skill
+          - plugin
         category:
           type: string
           description: Category chosen by whoever published.
@@ -497,7 +875,7 @@ components:
           nullable: true
         body:
           type: string
-          description: Long description, when whoever published wrote one.
+          description: Long description from the submission or automatic review.
           nullable: true
         url:
           type: string
@@ -505,6 +883,11 @@ components:
         status:
           type: string
           description: State in the catalog.
+          enum:
+          - pending
+          - live
+          - hidden
+          - blocked
         origin:
           type: string
           description: 'Where the listing came from: `official`, `marketplace`, `directory` or a community submission.'
@@ -542,7 +925,23 @@ components:
           nullable: true
         topico:
           type: string
-          description: Topic inferred from the repository, used in the facets.
+          description: Inferred topic used in search filters, not a publisher declaration. When available, `payload.topico_llm` carries the supporting quote and confidence.
+          nullable: true
+        linguagem:
+          type: string
+          description: Primary language of the repository, when collected.
+          nullable: true
+        licenca:
+          type: string
+          description: SPDX license of the repository, when collected.
+          nullable: true
+        repo_topics:
+          type: string
+          description: Repository topics, separated by spaces.
+          nullable: true
+        repo_slug:
+          type: string
+          description: owner/name of the repository, when known.
           nullable: true
         stars:
           type: integer
@@ -564,6 +963,13 @@ components:
           type: string
           description: How the repository is doing (active, stalled, archived, renamed, gone).
           nullable: true
+          enum:
+          - ativo
+          - parado
+          - arquivado
+          - renomeado
+          - sumiu
+          - null
         likes:
           type: integer
           description: How many people liked it — the like is reversible and counts people.
@@ -592,6 +998,32 @@ components:
         comments_api:
           type: string
           description: Absolute URL of this listing's comments.
+        readme_api:
+          type: string
+          description: 'Absolute URL of the collected README (`GET`). On list rows and on the listing page, and only when a README was stored: absent means none was collected — do not build the path yourself.'
+        historico:
+          type: array
+          items:
+            type: object
+          description: 'Listing page only: the repository''s last events, as in `/api/listings/:id/history`; absent when there is none yet.'
+        readme_fonte:
+          type: string
+          description: 'Where the README came from: `repo` (the GitHub repository''s README) or `npm` / `pypi` (the package registry''s README, used when the listing has no repository). Present together with `readme_api`.'
+        readme_bytes:
+          type: integer
+          description: Size of the collected README in bytes, on list rows and on the listing page; 0 when none was collected.
+        readme_sha:
+          type: string
+          description: SHA-256 of the collected README. Listing page only.
+          nullable: true
+        readme_em:
+          type: string
+          description: When the README was stored (UTC). Listing page only.
+          nullable: true
+        payload:
+          type: object
+          description: 'Install payload mirrored from the source. Listing page only. When the topic came from the model, `topico_llm` holds `{topico, confianca, trecho, v}`: the label, the confidence (0–1), the literal quote that justified it and the rule version.'
+          nullable: true
       required:
       - id
       - kind
@@ -611,6 +1043,10 @@ components:
       - oficial_status
       - repo_host
       - topico
+      - linguagem
+      - licenca
+      - repo_topics
+      - repo_slug
       - stars
       - forks
       - prs_abertos
@@ -625,9 +1061,314 @@ components:
       - api
       - go
       - comments_api
+      - readme_bytes
+      - readme_sha
+      - readme_em
+      - payload
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    FerramentasAnunciadas:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Listing ID.
+        sha:
+          type: string
+          description: SHA-256 of the normalized manifest; it changes when a tool or the instructions change.
+        verificado_em:
+          type: string
+          description: Last visit (ISO 8601).
+        mudou_em:
+          type: string
+          description: When the manifest last changed (ISO 8601).
+        instrucoes:
+          type: string
+          description: Server instructions from `initialize`, up to 4,000 characters.
+        ferramentas:
+          type: array
+          items:
+            type: object
+          description: '`{ name, title, description, input_schema, input_schema_cortado, annotations }`, sorted by name, at most 500.'
+        capacidades:
+          type: array
+          items:
+            type: string
+          description: 'What the tools mention doing, read from names, descriptions and the `destructiveHint` annotation: `apaga`, `executa`, `arquivos`, `envia`, `pagamento`, `navega`. A reading of the announcement, not proof of behavior.'
+        suspeitas:
+          type: array
+          items:
+            type: object
+          description: 'Text that deserves a look: `{ codigo, onde, trecho }` — `codigo` is `texto_invisivel`, `ignora_instrucoes`, `esconde_do_usuario`, `marca_de_injecao`, `pede_segredo` or `baixa_e_executa`; `onde` is the tool name or `instructions`; `trecho` is the literal excerpt.'
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - id
+      - sha
+      - verificado_em
+      - mudou_em
+      - instrucoes
+      - ferramentas
+      - capacidades
+      - suspeitas
+      - api
+      description: What a remote MCP server announced at its last read.
+    Readme:
+      type: object
+      properties:
+        markdown:
+          type: string
+          description: README text, UTF-8. May be truncated at 200 kB.
+        bytes:
+          type: integer
+          description: Size as stored.
+        sha:
+          type: string
+          description: SHA-256 of the stored object.
+        repo_slug:
+          type: string
+          description: owner/name of the repository; empty when the listing has none.
+        fonte:
+          type: string
+          description: '`repo`, `npm` or `pypi` — the same value as `readme_fonte` on the listing page.'
+        truncated:
+          type: boolean
+          description: '`true` when the body was cut at the cap.'
+        api:
+          type: string
+          description: Absolute URL of this resource.
+      required:
+      - markdown
+      - bytes
+      - sha
+      - repo_slug
+      - fonte
+      - truncated
+      - api
+      description: The available README for the listing, with its attribution and reference date. Reading does not refresh it.
+    PaginaDeAnuncios:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Anuncio'
+          description: The listings on this page.
+        limit:
+          type: integer
+          description: Page size applied.
+        offset:
+          type: integer
+          description: Offset applied.
+        next_offset:
+          type: integer
+          description: Offset of the next page; `null` when there is no more.
+          nullable: true
+        next_cursor:
+          type: string
+          description: 'Opaque cursor of the next page for the orders without a text query (`recent`, `stars`, `nome`): pass it back as `cursor`. Each page then reads only its own rows, whatever the depth. `null` when there is no more, or when the order is ranked by `q`, likes or visits (offset applies there).'
+          nullable: true
+        next:
+          type: string
+          description: Absolute URL of the next page, same filters — follow it until it comes back `null` to walk the whole catalog without rebuilding the querystring.
+          nullable: true
+        low_count:
+          type: integer
+          description: 'With `low=0` and `q`: `low` listings left out (cap 200).'
+        low_capped:
+          type: boolean
+          description: '`true` when the count hit the cap — there are at least that many.'
+        low_included:
+          type: boolean
+          description: '`true` unless `low=0`: the `low` tail comes after `live`.'
+        interpretacao:
+          type: object
+          description: Filters deduced from `q` (`kind`, `topico`, `transporte`, `origin`, residual `q`). `null` when understanding is off or there is no query.
+          nullable: true
+        api:
+          type: string
+          description: Absolute URL of this listing.
+      required:
+      - items
+      - limit
+      - offset
+      - next_offset
+      - next_cursor
+      - next
+      - low_count
+      - low_capped
+      - low_included
+      - interpretacao
+      - api
+      description: 'A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision.'
+    Like:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        liked:
+          type: boolean
+          description: Whether YOU are liking it now.
+        likes:
+          type: integer
+          description: Total people liking the listing.
+      required:
+      - ok
+      - liked
+      - likes
+      description: The state of the like after the call. Turning it on and off return the same shape.
+    Comentario:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Comment ID, for deleting.
+        body:
+          type: string
+          description: The comment text.
+        author:
+          type: string
+          description: Nickname of whoever wrote it.
+          nullable: true
+        created_at:
+          type: string
+          description: When it was written (UTC).
+        mine:
+          type: boolean
+          description: '`true` if it is yours — only you can delete it.'
+      required:
+      - id
+      - body
+      - author
+      - created_at
+      - mine
+      description: A public comment on a listing.
+    Seguranca:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Listing ID.
+        conferido:
+          type: boolean
+          description: '`true` when the MCP was visited or SKILL.md was reviewed.'
+        motivo:
+          type: string
+          description: '`na_fila`, `modelo`, `nao_remoto`, `skill_na_fila`, `skill_sem_fonte` (unsupported source) or `skill_em_preparo` (collection not enabled).'
+        nivel:
+          type: string
+          description: '`risco`, `atencao`, `ok`, or empty when not checked.'
+          enum:
+          - risco
+          - atencao
+          - ok
+          - ''
+        tipo:
+          type: string
+          description: '`skill` for static SKILL.md review.'
+        revisao:
+          type: object
+          description: 'Skill report, or null before review: `regras`, `texto_sha`, `bytes`, `linhas`, `caminho`, `escopo` (SKILL.md), `nivel`, `sinais`, `total_achados`, `achados_truncados`; up to 50 `achados` with `codigo`, `nivel`, `contexto` (instrucao, exemplo, proibicao), `caminho`, `linha` (1-based), `trecho`, `abreviado`, `redigido`. The level includes all findings, including omitted findings.'
+          nullable: true
+        fonte:
+          type: string
+          description: Original public SKILL.md URL.
+        caminho:
+          type: string
+          description: SKILL.md path within its repository.
+        vigiavel:
+          type: boolean
+          description: Whether this skill can use a watch slot.
+        sinais:
+          type: array
+          items:
+            type: object
+          description: '`{ codigo, valor, rotulo?, degrau }`, most serious first; `degrau` is `risco`, `atencao` or `info`; `tunel` carries the provider id in `valor` and its name in `rotulo`.'
+        servidor:
+          type: object
+          description: '`estado` (ok, login, erro, nao_mcp, fora, dns, tls, bloqueado), `nome`, `versao`, `protocolo`, `transporte`, `host`, `pais` (ISO country of the IP that answered).'
+        dominio:
+          type: object
+          description: 'Facts about the registrable domain of the address, from our domain data, or null when we know none: `nome`; `registrado` (`{ desde, ate, fonte }`, the window in which it was registered, from the newly registered domain lists, `fonte` `nrd7` or `nrd_faixa`; null when older or unknown); `organizacao` (the organization of its OV/EV TLS certificate, or null); `tambem_cobre` (`{ dominio, certificados, visto_em }`, up to 10 other domains that the same TLS certificates cover — whoever requested the certificate controlled all of them); `mudou_em`. A registration less than 90 days old turns on the `dominio_recente` signal.'
+          nullable: true
+        ferramentas:
+          type: object
+          description: '`total` (null when not read), `mudou_em`, `capacidades`, `suspeitas` and `api` (the `/tools` route, or null).'
+        verificado_em:
+          type: string
+          description: Last visit (ISO 8601).
+        proxima_em:
+          type: string
+          description: Next scheduled visit (ISO 8601); empty when it is never visited.
+        mudou_em:
+          type: string
+          description: When the level or the signals last changed.
+        eventos:
+          type: array
+          items:
+            type: object
+          description: 'Last 10 changes, newest first: `{ visto_em, tipo, de, para }` — `ferramentas_mudaram`, `estado_mudou`, `nivel_mudou`, `pais_mudou`, `versao_mudou`, `skill_texto_mudou` (content hashes), `skill_sinais_mudaram` (signal codes).'
+        aviso:
+          type: string
+          description: What the level means and what it does not.
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - id
+      - conferido
+      - nivel
+      - sinais
+      - aviso
+      - api
+      description: The security review of one listing, from our own visits to the server.
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Guest mr_…, session sess_… or ADMIN_TOKEN.
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

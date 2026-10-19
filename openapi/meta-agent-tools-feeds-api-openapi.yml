@@ -1,0 +1,799 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Feeds API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Feeds
+paths:
+  /api/feeds:
+    get:
+      operationId: feed_search
+      summary: 'The feed index: RSS, Atom and JSON feeds, OPML reading lists and sites that…'
+      description: 'Find feeds by text, format, language and availability. Filter and text search run in the SAME full-text query: values inside one parameter are OR''d, different parameters are AND''d. Without `q` the order is by newest in the index (`recentes`) and `next_cursor` is a keyset — follow `next` to walk everything. With `q` the order is relevance and paging is by `offset`. We index and link; the feeds belong to whoever publishes them.
+
+        Returns: { items[{id,kind,dominio,url,nome,descricao,tipo,audio,video,comunidade,comunidades,ano,recursos,densidade,itens,saude,pais,site_titulo,site_descricao,site_nome,site_og,site_og_alt,site_cor,site_idioma,idioma_bandeira,icone,imagem,ultimo_post,posts_24h,posts_7d,posts_30d,posts_dias,posts_no_feed,posts_parcial,atividade_em,pagina,api}], limit, offset, next_cursor, next_offset, next, sort, api }'
+      security: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Free text over the feed name, its description and the domain. Every word must match; accents are ignored.
+        example: linux
+      - name: origem
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - index
+          - blogroll
+          - bridge
+        description: Where the record comes from. Comma-separated values are OR'd.
+      - name: tipo
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - rss2
+          - rss1
+          - atom
+          - json
+          - rss
+        description: Feed format. Comma-separated values are OR'd.
+      - name: midia
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - audio
+          - video
+        description: Enclosures the feed carries — this is how you find podcasts and video feeds.
+      - name: comunidade
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - fediverse
+          - indieweb
+          - mastodon
+          - friendica
+          - wordpress
+          - funkwhale
+          - blogroll
+        description: Community the publisher belongs to, as the source's bitmask declares it.
+      - name: recurso
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - content
+          - itunes
+          - podcast
+          - media
+          - slash
+          - wfw
+          - georss
+        description: 'Namespace seen in the feed: `content` means the whole post travels in the feed, `itunes`/`podcast` mean podcast metadata, `slash` means comment counts.'
+      - name: lista
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - web
+          - catalogo
+          - planeta
+        description: 'For OPML lists only: how the list presents itself.'
+      - name: ano
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Year of the newest item the crawler saw. `0` means the source never dated the content. It is a year, not a moving window: the value never drifts.'
+        example: 2026,2025
+      - name: saude
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - ok
+          - erro
+          - sumiu
+        description: 'What our own check saw: `ok` answered, `erro` refused or timed out, `sumiu` returned 404/410. A feed not checked yet matches none of them.'
+        example: ok
+      - name: pais
+        in: query
+        required: false
+        schema:
+          type: string
+        description: ISO-3166 alpha-2 of the IP that serves the host, lowercase or uppercase, resolved in the same check.
+        example: br,pt
+      - name: dominio
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Exact domain — the fastest way to ask whether a site has a feed.
+      - name: idioma
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Language of the site''s home page, two or three letters: `pt` matches `pt` and `pt-br`.'
+        example: pt
+      - name: imagem
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: '`1` keeps only feeds whose site has a stored preview image (`imagem` is not empty) — the list that looks like a wall of link cards.'
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: relevancia with q, recentes otherwise
+          enum:
+          - recentes
+          - postando
+          - frequentes
+          - densidade
+          - dominio
+          - relevancia
+        description: Result order. `recentes` is insertion in the index (what just arrived). `postando` is the newest post first, read from the feed itself (feeds without a dated post are left out). `frequentes` is most posts in the last 30 days first (same). `densidade` is how much item text discovery found — the closest thing to 'this feed has substance'. `dominio` is A–Z by site.
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Opaque cursor from `next_cursor` (orders `recentes`, `densidade` and `dominio`). A cursor from another order restarts at the first page.
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+        description: Feeds per page, 1–50.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: Offset, capped at 10000. Ignored when `cursor` is present.
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ items[{id,kind,dominio,url,nome,descricao,tipo,audio,video,comunidade,comunidades,ano,recursos,densidade,itens,saude,pais,site_titulo,site_descricao,site_nome,site_og,site_og_alt,site_cor,site_idioma,idioma_bandeira,icone,imagem,ultimo_post,posts_24h,posts_7d,posts_30d,posts_dias,posts_no_feed,posts_parcial,atividade_em,pagina,api}], limit, offset, next_cursor, next_offset, next, sort, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeFeeds'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Feeds
+  /api/feeds/facets:
+    get:
+      operationId: get_api_feeds_facets
+      summary: How many feeds exist in each filter value
+      description: 'Counts reflect the latest catalog update.
+
+        Returns: { total, facetas, api }'
+      security: []
+      responses:
+        '200':
+          description: '{ total, facetas, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacetasDeFeeds'
+      tags:
+      - Feeds
+  /api/feeds/{id}:
+    get:
+      operationId: get_api_feeds_by_id
+      summary: 'One feed: address, format, what it carries and where it was found'
+      description: 'The same record the HTML page at `/feeds/` shows. 404 when the id is unknown.
+
+        Returns: { id, kind, dominio, url, nome, descricao, tipo, audio, video, comunidade, comunidades, ano, recursos, densidade, itens, saude, pais, site_titulo, site_descricao, site_nome, site_og, site_og_alt, site_cor, site_idioma, idioma_bandeira, icone, imagem, ultimo_post, posts_24h, posts_7d, posts_30d, posts_dias, posts_no_feed, posts_parcial, atividade_em, pagina, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Feed id, prefix `fd_`.
+        example: fd_nytimes_com_1a2b3c4d5e6f7a8b
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ id, kind, dominio, url, nome, descricao, tipo, audio, video, comunidade, comunidades, ano, recursos, densidade, itens, saude, pais, site_titulo, site_descricao, site_nome, site_og, site_og_alt, site_cor, site_idioma, idioma_bandeira, icone, imagem, ultimo_post, posts_24h, posts_7d, posts_30d, posts_dias, posts_no_feed, posts_parcial, atividade_em, pagina, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: No feed in this index has that id.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Feeds
+  /api/feeds/{id}/items:
+    get:
+      operationId: feed_posts
+      summary: The posts of one feed, as our queue read them
+      description: 'Up to 40 posts, in the order the feed publishes them, WITHOUT the body — the body of one post comes from `/items/:ord`. It is OUR copy, read on our own schedule — not the live feed and not a proxy: the only thing this endpoint accepts is an id from this index, never a URL. `lido_em` says when we read it. Empty list when the feed has not been read yet.
+
+        Returns: { id, itens[{ord,tags,media,comentarios,comentarios_n,titulo,link,quando,autor,resumo,bytes}], lido_em, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Feed id, prefix `fd_`.
+        example: fd_nytimes_com_1a2b3c4d5e6f7a8b
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ id, itens[{ord,tags,media,comentarios,comentarios_n,titulo,link,quando,autor,resumo,bytes}], lido_em, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostsDeFeed'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: No feed in this index has that id. A feed we know but have not read yet answers 200 with an empty `itens` — the two are different answers on purpose.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Feeds
+  /api/feeds/{id}/items/{ord}:
+    get:
+      operationId: feed_post
+      summary: One post of a feed, with the body — the author's HTML and the same text in…
+      description: 'Two bodies for the same post, both from the copy we stored when we READ the feed — a request never fetches the site: `conteudo_html` keeps the author''s formatting through an allowlist (only known tags and attributes survive; script, style, iframe and event handlers are dropped with their content), and `conteudo` is the same text as Markdown — the shape an agent usually wants. Neither can carry script. 404 when the feed or the position is unknown.
+
+        Returns: { id, ord, titulo, link, quando, autor, resumo, conteudo_html, conteudo, lido_em, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Feed id, prefix `fd_`.
+        example: fd_nytimes_com_1a2b3c4d5e6f7a8b
+      - name: ord
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Position of the post in the feed; 0 is the newest.
+        example: '0'
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ id, ord, titulo, link, quando, autor, resumo, conteudo_html, conteudo, lido_em, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDeFeedInteiro'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: Unknown feed id, or a position this feed does not have.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Feeds
+components:
+  schemas:
+    Feed:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Feed id, prefix `fd_`; it is the key across this collection.
+        kind:
+          type: string
+          description: What this record is.
+          enum:
+          - index
+          - blogroll
+          - bridge
+        dominio:
+          type: string
+          description: Domain that publishes it, lowercase and without `www.`.
+        url:
+          type: string
+          description: The feed address — or the site's, for a record of kind `bridge`.
+        nome:
+          type: string
+          description: Feed title as the source published it.
+        descricao:
+          type: string
+          description: Feed description; for a reading list, whoever curates it.
+        tipo:
+          type: string
+          description: Feed format.
+          enum:
+          - rss2
+          - rss1
+          - atom
+          - json
+          - rss
+          - ''
+        audio:
+          type: boolean
+          description: '`true` when the feed carries audio enclosures — a podcast.'
+        video:
+          type: boolean
+          description: '`true` when the feed carries video enclosures.'
+        comunidade:
+          type: integer
+          description: Bitmask of the communities the publisher belongs to; 0 when none is known.
+        comunidades:
+          type: array
+          items:
+            type: string
+          description: The same communities by name (`wordpress`, `indieweb`, `fediverse`, `mastodon`, `friendica`, `funkwhale`, `blogroll`), so nobody has to decode the bitmask.
+        ano:
+          type: integer
+          description: Year of the newest item the source saw in this feed; 0 when it published no usable date. It is a freshness hint from discovery, not a live check.
+        recursos:
+          type: array
+          items:
+            type: string
+          description: Namespaces seen in the feed, `content` first when the whole post travels in it.
+        densidade:
+          type: integer
+          description: 'The source''s own text score for the feed (`t`): how much item text discovery found. Bigger means more text travels in the feed — the scale is the source''s, and the value is frozen at discovery, not a live metric.'
+        itens:
+          type: integer
+          description: How many feeds an OPML list had when it was read; 0 for a feed.
+        saude:
+          type: string
+          description: 'What OUR own check saw: `ok` answered with an actual feed (an RSS/Atom/RDF root, a JSON Feed, or OPML for a list); `sumiu` returned 404/410 or its domain no longer resolves; `erro` any other failure. A failure only changes this after a second check hours later agrees, and a server that blocks robots (401/403, bot challenge) never turns into `erro`. Empty means not checked yet — which is not the same as failing.'
+          enum:
+          - ''
+          - ok
+          - erro
+          - sumiu
+        pais:
+          type: string
+          description: ISO-3166 alpha-2 of the IP that serves the host, resolved during that same check. Empty when it could not be resolved.
+        site_titulo:
+          type: string
+          description: 'Link preview of the publisher''s home page, as WhatsApp or X would read it: `og:title`, then `twitter:title`, JSON-LD and `<title>`. Every `site_*` field is empty when the site declares nothing, was not visited yet, disallows our robot in robots.txt, or is confirmed gone (parked, suspended, default server page).'
+        site_descricao:
+          type: string
+          description: 'Preview description: `og:description`, then `twitter:description`, JSON-LD and `<meta name=description>`.'
+        site_nome:
+          type: string
+          description: Site name the page declares (`og:site_name`, `application-name`).
+        site_og:
+          type: string
+          description: The preview image URL as declared by the site (`og:image`, then `twitter:image`); https only.
+        site_og_alt:
+          type: string
+          description: Alternative text the site declares for that image (`og:image:alt`).
+        site_cor:
+          type: string
+          description: The site's `theme-color` as `#rrggbb`; empty when absent or not a plain color.
+        site_idioma:
+          type: string
+          description: 'Language of the home page (`<html lang>`, then `og:locale`): two or three letters, plus the region when the site declares one (`pt-br`, `en-us`).'
+        idioma_bandeira:
+          type: string
+          description: 'ISO-3166 alpha-2 (lowercase) of the flag that stands for that language: the declared region, otherwise the language''s reference country (`en` → `gb`, `pt` → `br`). Empty for languages without one.'
+        icone:
+          type: string
+          description: Absolute URL of the site icon served by us (the largest raster icon the home declares, up to 512 px; `/favicon.ico` otherwise), downloaded and checked on our index host. Empty when we have none stored.
+        imagem:
+          type: string
+          description: Absolute URL of the preview image served by us, up to 600 KB, downloaded and checked on our index host (PNG, JPEG, GIF, WebP, AVIF, ICO or BMP by its bytes). Empty when the site declares none or we have none stored.
+        ultimo_post:
+          type: string
+          description: ISO 8601 date of the newest post, read from the feed itself (RSS `pubDate`, Atom `published`/`updated`, RDF `dc:date`, JSON Feed `date_published`). Empty when not read yet, when the feed dates nothing, or for lists and bridges.
+        posts_24h:
+          type: integer
+          description: Posts published in the last 24 hours, counted at request time over the dates we read. `null` when the feed was not read yet — not the same as zero.
+          nullable: true
+        posts_7d:
+          type: integer
+          description: Posts in the last 7 days, same rules as `posts_24h`.
+          nullable: true
+        posts_30d:
+          type: integer
+          description: Posts in the last 30 days, same rules as `posts_24h`.
+          nullable: true
+        posts_dias:
+          type: array
+          items:
+            type: integer
+          description: Posts per day over the last 30 days, oldest first and today last (24-hour windows counted from the request time). `null` when the feed was not read yet.
+          nullable: true
+        posts_no_feed:
+          type: integer
+          description: Items the feed carried in what we read. `0` is an empty feed, which is not the same as a feed whose posts carry no date.
+          nullable: true
+        posts_parcial:
+          type: boolean
+          description: The feed is longer than what we read (10 MB), so the counts are minimums.
+        atividade_em:
+          type: string
+          description: When we last read the feed's posts (ISO 8601). Active feeds are re-read daily.
+        pagina:
+          type: string
+          description: Absolute URL of this record's HTML page.
+        api:
+          type: string
+          description: Absolute URL of this resource.
+      required:
+      - id
+      - kind
+      - dominio
+      - url
+      - nome
+      - descricao
+      - tipo
+      - audio
+      - video
+      - comunidade
+      - comunidades
+      - ano
+      - recursos
+      - densidade
+      - itens
+      - saude
+      - pais
+      - site_titulo
+      - site_descricao
+      - site_nome
+      - site_og
+      - site_og_alt
+      - site_cor
+      - site_idioma
+      - idioma_bandeira
+      - icone
+      - imagem
+      - ultimo_post
+      - posts_24h
+      - posts_7d
+      - posts_30d
+      - posts_dias
+      - posts_no_feed
+      - posts_parcial
+      - atividade_em
+      - pagina
+      - api
+      description: 'A record in the feed index: an RSS/Atom/JSON feed, an OPML reading list, or a site that only becomes a feed through a bridge.'
+    PostDeFeedInteiro:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Feed id this post belongs to.
+        ord:
+          type: integer
+          description: Position of the post in the feed when we read it; 0 is the newest.
+        titulo:
+          type: string
+          description: Post title, plain text.
+        link:
+          type: string
+          description: The post on the publisher's site, `http`/`https` only.
+        quando:
+          type: string
+          description: Publication date in ISO-8601; empty when the item carried no usable date.
+        autor:
+          type: string
+          description: Author as the feed named them, without the e-mail address.
+        resumo:
+          type: string
+          description: First lines of the post, plain text.
+        conteudo_html:
+          type: string
+          description: 'The post body as HTML that passed OUR allowlist when we read the feed: only the tags and attributes named in `origem/processa/html-seguro.mjs` survive, links are absolute and open in a new tab, images carry no referrer, and script, style, iframe and embedded media are gone with their content. It keeps the author''s formatting — tables, figures with captions, nested lists — and the post''s own `audio`/`video` (never autoplaying, nothing fetched before play). A video embed from a known host (YouTube, Vimeo, SoundCloud, Twitch, Dailymotion, Bandcamp, Bilibili, Spotify, Internet Archive) becomes a placeholder `div.mural-md-embed` carrying `data-embed`: the player is only created when the reader clicks it, so the host learns nothing until then.'
+        conteudo:
+          type: string
+          description: The same body in Markdown, up to half a million characters, cut at a paragraph — the shape an agent usually wants.
+        lido_em:
+          type: string
+          description: When we read the feed, ISO-8601.
+        api:
+          type: string
+          description: Absolute URL of this resource.
+      required:
+      - id
+      - ord
+      - titulo
+      - link
+      - quando
+      - autor
+      - resumo
+      - conteudo_html
+      - conteudo
+      - lido_em
+      - api
+      description: One post with its body, as `/api/feeds/{id}/items/{ord}` returns it.
+    PostDeFeed:
+      type: object
+      properties:
+        ord:
+          type: integer
+          description: Position of the post in the feed when we read it; 0 is the newest. It addresses the post in `/items/{ord}`.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Categories the author declared in the feed (`<category>`, Atom `term`, `dc:subject`, JSON Feed `tags`).
+        media:
+          type: object
+          description: 'The post enclosure — `{ url, tipo, bytes, seg }` — when the feed carries one: the podcast audio, the video, the image. `null` otherwise.'
+          nullable: true
+        comentarios:
+          type: string
+          description: Address of the post comments, when the feed gives one.
+        comentarios_n:
+          type: integer
+          description: How many comments the feed declares (`slash:comments`); 0 when it declares none.
+        titulo:
+          type: string
+          description: Post title, plain text.
+        link:
+          type: string
+          description: The post on the publisher's site, `http`/`https` only; empty when the feed gave none.
+        quando:
+          type: string
+          description: Publication date in ISO-8601; empty when the item carried no usable date.
+        autor:
+          type: string
+          description: Author as the feed named them, without the e-mail address; empty when absent.
+        resumo:
+          type: string
+          description: First lines of the post, plain text, for a listing.
+        bytes:
+          type: integer
+          description: How much body text is stored for this post; 0 when the feed only carries titles.
+      required:
+      - ord
+      - tags
+      - media
+      - comentarios
+      - comentarios_n
+      - titulo
+      - link
+      - quando
+      - autor
+      - resumo
+      - bytes
+      description: 'One post as our queue read it from the feed, WITHOUT the body — `/api/feeds/:id/items/:ord` serves that. Every text field here is plain text: no markup, no attribute and no script from the source survives.'
+    PaginaDeFeeds:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feed'
+          description: The records on this page.
+        limit:
+          type: integer
+          description: Page size applied.
+        offset:
+          type: integer
+          description: Offset applied.
+        next_cursor:
+          type: string
+          description: Opaque cursor of the next page for the orders without a text query. `null` when there is no more.
+          nullable: true
+        next_offset:
+          type: integer
+          description: Offset of the next page when the order is by relevance.
+          nullable: true
+        next:
+          type: string
+          description: Absolute URL of the next page, same filters.
+          nullable: true
+        sort:
+          type: string
+          description: Order actually applied.
+        api:
+          type: string
+          description: Absolute URL of this collection.
+      required:
+      - items
+      - limit
+      - offset
+      - next_cursor
+      - next_offset
+      - next
+      - sort
+      - api
+      description: 'A page of the feed index. No `total`: the total per filter value lives in `/api/feeds/facets`, already counted.'
+    FacetasDeFeeds:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Records in the index.
+        facetas:
+          type: object
+          description: One key per filter (`origem`, `tipo`, `midia`, `comunidade`, `recurso`, `lista`, `ano`), each a list of `{ v, n }`.
+        api:
+          type: string
+          description: Absolute URL of this resource.
+      required:
+      - total
+      - facetas
+      - api
+      description: How many records exist in each filter value, pre-computed on the collector.
+    PostsDeFeed:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Feed id these posts belong to.
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostDeFeed'
+          description: Up to 40 posts, in the order the feed publishes them (the archive keeps every post the feed carried).
+        lido_em:
+          type: string
+          description: When we read the feed, ISO-8601; empty when it was never read.
+        api:
+          type: string
+          description: Absolute URL of this resource.
+      required:
+      - id
+      - itens
+      - lido_em
+      - api
+      description: The posts of one feed, as our queue read them — our copy, not the live feed.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

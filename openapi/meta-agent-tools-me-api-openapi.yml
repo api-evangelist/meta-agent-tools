@@ -1,25 +1,139 @@
 openapi: 3.2.0
 info:
-  title: Meta Agent Tools Me API
+  title: Agentalog — Agent Auto Log Me API
   version: 1.0.0
-  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
 servers:
 - url: https://agentalog.com
 tags:
 - name: Me
 paths:
+  /api/me/vigia:
+    get:
+      operationId: list_watched_tools
+      summary: The MCP servers and skills you watch, with the current review, your slots and…
+      description: 'Daily checks cover MCP tools, state, level, country and version. Supported skills cover changes in SKILL.md text and review signals. Source quotas can delay a check; read proxima_em and verificado_em. The e-mail goes to the verified account address and includes an unsubscribe link. Wallet-only owners follow changes through the API.
+
+        Returns: { itens, cota, planos, claude_code, api }'
+      security:
+      - globalAccount: []
+      - carteiraAgente: []
+      responses:
+        '200':
+          description: '{ itens, cota, planos, claude_code, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vigia'
+        '401':
+          description: 'Sign in with your account, or send the wallet credential (`Authorization: Bearer mmw_…`).'
+      tags:
+      - Me
+    post:
+      operationId: watch_tool
+      summary: Watch a remote MCP or supported SKILL.md.
+      description: 'Choose a live remote MCP or a skill with a supported public raw.githubusercontent.com SKILL.md, after skill collection is enabled. Unsupported skills are rejected before payment. Watching again is a no-op (`ja_vigiado`). Pay the 402 with x402 or prepaid credit and repeat the request. Slots last 30 days with no automatic renewal. Skills do not enter the Claude Code MCP allowlist.
+
+        Returns: { ok, id?, ja_vigiado?, cota }'
+      x-price-usd: 0.1
+      security:
+      - globalAccount: []
+      - carteiraAgente: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                listing_id:
+                  type: string
+                  description: Listing ID (`mcp_…` or `skl_…`) from `/api/listings`.
+              required:
+              - listing_id
+            example:
+              listing_id: mcp_io_github_upstash_context7_d016de0d
+      responses:
+        '200':
+          description: '{ ok, id?, ja_vigiado?, cota }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VigiaAlterada'
+        '400':
+          description: Invalid JSON, unavailable skill review, unsupported source or a listing that cannot be watched (`nao_vigiavel`).
+        '401':
+          description: 'Sign in with your account, or send the wallet credential (`Authorization: Bearer mmw_…`).'
+        '402':
+          description: 'No free slot: pay for one more.'
+        '403':
+          description: Missing or invalid X-CSRF-Token.
+        '409':
+          description: Expired passes leave paused tools in the list. Stop watching one or buy slots before adding another tool. A concurrent request can also use the last slot; refresh the list and retry.
+      tags:
+      - Me
+  /api/me/vigia/{id}:
+    delete:
+      operationId: unwatch_tool
+      summary: Stop watching a tool; its slot becomes free
+      description: 'Returns: { ok, id?, ja_vigiado?, cota }'
+      security:
+      - globalAccount: []
+      - carteiraAgente: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Listing ID (`mcp_…` or `skl_…`).
+        example: mcp_…
+      responses:
+        '200':
+          description: '{ ok, id?, ja_vigiado?, cota }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VigiaAlterada'
+        '401':
+          description: 'Sign in with your account, or send the wallet credential (`Authorization: Bearer mmw_…`).'
+        '404':
+          description: The listing is not in your watch list.
+      tags:
+      - Me
+  /api/me/vigia/claude-code:
+    get:
+      operationId: claude_code_allowlist
+      summary: 'Your watch list as Claude Code managed settings: an allowlist of the servers…'
+      description: '`managed_settings` goes into a Claude Code managed settings source (see `docs`). `allowManagedMcpServersOnly` restricts user-added servers to this list. Checked servers rated as `risco` go to `deniedMcpServers`. The exact URL and that URL followed by `?*` permit the checked route with optional query parameters. Expired or unchecked items stay out. `comandos` has one quoted `claude mcp add` command per allowed server.
+
+        Returns: { managed_settings, comandos, fora, aviso, docs, api }'
+      security:
+      - globalAccount: []
+      - carteiraAgente: []
+      responses:
+        '200':
+          description: '{ managed_settings, comandos, fora, aviso, docs, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaClaudeCode'
+        '401':
+          description: 'Sign in with your account, or send the wallet credential (`Authorization: Bearer mmw_…`).'
+      tags:
+      - Me
   /api/me/listings:
     get:
       operationId: get_api_me_listings
       summary: The owner's listings in any state, including pending and hidden
-      description: 'It is the only route that shows what is not live yet — the public mosaic never does.
+      description: 'It is the only route that shows what is not live yet — the public mosaic never does. A temporary guest sees its own submissions here and keeps them when it links an account.
 
-        Returns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+        Returns: { items[{seguranca_nivel?,seguranca_estado?,seguranca_api?,moderation?,id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,linguagem,licenca,repo_topics,repo_slug,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api,readme_api?,historico?,readme_fonte?,readme_bytes,readme_sha,readme_em,payload}] }'
       security:
       - bearerAuth: []
       responses:
         '200':
-          description: '{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+          description: '{ items[{seguranca_nivel?,seguranca_estado?,seguranca_api?,moderation?,id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,linguagem,licenca,repo_topics,repo_slug,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api,readme_api?,historico?,readme_fonte?,readme_bytes,readme_sha,readme_em,payload}] }'
           content:
             application/json:
               schema:
@@ -29,7 +143,7 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Anuncio'
-                    description: The account's listings, in any state.
+                    description: This owner’s listings, in any state.
                 required:
                 - items
         '401':
@@ -40,12 +154,14 @@ paths:
     get:
       operationId: get_api_me
       summary: The session's account and, for the admin, the load state
-      description: 'Returns: { user{id,email}, admin, carga?{fontes,falhas,runs} }'
+      description: 'The account is the global account; `user.id` is its id — the same id that owns the listings, likes and comments made with it, and the guest''s after the claim.
+
+        Returns: { user{id,email}, profile, admin, carga?{fontes,falhas,runs,orcamento} }'
       security:
-      - bearerAuth: []
+      - globalAccount: []
       responses:
         '200':
-          description: '{ user{id,email}, admin, carga?{fontes,falhas,runs} }'
+          description: '{ user{id,email}, profile, admin, carga?{fontes,falhas,runs,orcamento} }'
           content:
             application/json:
               schema:
@@ -55,6 +171,9 @@ paths:
                     allOf:
                     - $ref: '#/components/schemas/Conta'
                     description: The person who owns the session.
+                  profile:
+                    type: object
+                    description: 'Global profile: `name`, `locale`, `timeZone`, `theme`, `revision`.'
                   admin:
                     type: boolean
                     description: Whether this account is the `ADMIN_EMAIL`.
@@ -64,9 +183,12 @@ paths:
                     description: State of the load sources; admin only.
                 required:
                 - user
+                - profile
                 - admin
         '401':
-          description: No credential, or an invalid one. See this endpoint's auth.
+          description: invalid_session
+        '503':
+          description: auth_unavailable
       tags:
       - Me
   /api/me/ui:
@@ -77,7 +199,7 @@ paths:
 
         Returns: { prefs, api }'
       security:
-      - bearerAuth: []
+      - globalAccount: []
       responses:
         '200':
           description: '{ prefs, api }'
@@ -96,7 +218,7 @@ paths:
 
         Returns: { ok }'
       security:
-      - bearerAuth: []
+      - globalAccount: []
       requestBody:
         required: true
         content:
@@ -134,15 +256,87 @@ paths:
       - Me
 components:
   schemas:
+    Carga:
+      type: object
+      properties:
+        fontes:
+          type: array
+          items:
+            type: object
+          description: Each source with its last batch and the count it brought.
+        falhas:
+          type: array
+          items:
+            type: object
+          description: Import failures not yet marked as seen.
+        runs:
+          type: array
+          items:
+            type: object
+          description: The recent runs, newest first.
+        orcamento:
+          type: object
+          description: 'Today''s publication budget (UTC day): `total`, `catalogo` (the catalog slice) and `okf` (the OKF slice), each with `usados` (rows actually written, as D1 counts them: row, key and every index entry, reconciled after each batch), `reservado` (the estimate charged before writing; `reservado / usados` is how inflated the estimate is) and `teto`; `classes` (catalogo, okf, fatos, readmes, fts) with today''s `itens`, `reservado`, `linhas` (rows the database actually wrote) and `media` (real rows per item over the last days, the number the estimate now uses; null without history); plus `dia`.'
+      required:
+      - fontes
+      - falhas
+      - runs
+      - orcamento
+      description: The state of the catalog's load sources — where the listings come from and when they came.
+    Vigia:
+      type: object
+      properties:
+        itens:
+          type: array
+          items:
+            type: object
+          description: '`{ id, tipo, nome, vigiado_desde, valido_ate, ativa, nivel, sinais, estado, ferramentas, verificado_em, mudou_em, ficha, security }`, newest first. Skills have no MCP tool count. `valido_ate: null` is a free slot. `ativa: false` pauses checks and alerts; previous facts remain public.'
+        cota:
+          type: object
+          description: '`{ total, gratis, pagas, usadas, livres }`: free slots (3 per account) plus purchased slots still valid.'
+        planos:
+          type: array
+          items:
+            type: object
+          description: The house plans, as in `GET /api/plans` (`id`, `name`, `watched_tools`, `days`, `price_usd`, `automatic_renewal`, `charged_now`, `buy`), with `projects` and `installations`. Buy with `POST /api/plans/:plan`.
+        claude_code:
+          type: string
+          description: Absolute URL of the Claude Code export.
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - itens
+      - cota
+      - planos
+      - claude_code
+      - api
+      description: The account's watch list.
     Anuncio:
       type: object
       properties:
+        seguranca_nivel:
+          type: string
+          description: 'Remote MCP or skill check: risco, atencao, ok, or empty when not checked.'
+        seguranca_estado:
+          type: string
+          description: Remote MCP probe result. login means the check could not read actions without credentials; ok alone does not mean full coverage.
+        seguranca_api:
+          type: string
+          description: URL of the measured security results.
+        moderation:
+          type: object
+          description: 'Admin responses only: reason and reviewed_at from automatic moderation. Empty values mean no automatic decision.'
         id:
           type: string
           description: Listing ID; it is the key across the whole API.
         kind:
           type: string
           description: What this listing is.
+          enum:
+          - mcp
+          - skill
+          - plugin
         category:
           type: string
           description: Category chosen by whoever published.
@@ -156,7 +350,7 @@ components:
           nullable: true
         body:
           type: string
-          description: Long description, when whoever published wrote one.
+          description: Long description from the submission or automatic review.
           nullable: true
         url:
           type: string
@@ -164,6 +358,11 @@ components:
         status:
           type: string
           description: State in the catalog.
+          enum:
+          - pending
+          - live
+          - hidden
+          - blocked
         origin:
           type: string
           description: 'Where the listing came from: `official`, `marketplace`, `directory` or a community submission.'
@@ -201,7 +400,23 @@ components:
           nullable: true
         topico:
           type: string
-          description: Topic inferred from the repository, used in the facets.
+          description: Inferred topic used in search filters, not a publisher declaration. When available, `payload.topico_llm` carries the supporting quote and confidence.
+          nullable: true
+        linguagem:
+          type: string
+          description: Primary language of the repository, when collected.
+          nullable: true
+        licenca:
+          type: string
+          description: SPDX license of the repository, when collected.
+          nullable: true
+        repo_topics:
+          type: string
+          description: Repository topics, separated by spaces.
+          nullable: true
+        repo_slug:
+          type: string
+          description: owner/name of the repository, when known.
           nullable: true
         stars:
           type: integer
@@ -223,6 +438,13 @@ components:
           type: string
           description: How the repository is doing (active, stalled, archived, renamed, gone).
           nullable: true
+          enum:
+          - ativo
+          - parado
+          - arquivado
+          - renomeado
+          - sumiu
+          - null
         likes:
           type: integer
           description: How many people liked it — the like is reversible and counts people.
@@ -251,6 +473,32 @@ components:
         comments_api:
           type: string
           description: Absolute URL of this listing's comments.
+        readme_api:
+          type: string
+          description: 'Absolute URL of the collected README (`GET`). On list rows and on the listing page, and only when a README was stored: absent means none was collected — do not build the path yourself.'
+        historico:
+          type: array
+          items:
+            type: object
+          description: 'Listing page only: the repository''s last events, as in `/api/listings/:id/history`; absent when there is none yet.'
+        readme_fonte:
+          type: string
+          description: 'Where the README came from: `repo` (the GitHub repository''s README) or `npm` / `pypi` (the package registry''s README, used when the listing has no repository). Present together with `readme_api`.'
+        readme_bytes:
+          type: integer
+          description: Size of the collected README in bytes, on list rows and on the listing page; 0 when none was collected.
+        readme_sha:
+          type: string
+          description: SHA-256 of the collected README. Listing page only.
+          nullable: true
+        readme_em:
+          type: string
+          description: When the README was stored (UTC). Listing page only.
+          nullable: true
+        payload:
+          type: object
+          description: 'Install payload mirrored from the source. Listing page only. When the topic came from the model, `topico_llm` holds `{topico, confianca, trecho, v}`: the label, the confidence (0–1), the literal quote that justified it and the rule version.'
+          nullable: true
       required:
       - id
       - kind
@@ -270,6 +518,10 @@ components:
       - oficial_status
       - repo_host
       - topico
+      - linguagem
+      - licenca
+      - repo_topics
+      - repo_slug
       - stars
       - forks
       - prs_abertos
@@ -284,7 +536,39 @@ components:
       - api
       - go
       - comments_api
+      - readme_bytes
+      - readme_sha
+      - readme_em
+      - payload
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+      required:
+      - ok
+      description: Write confirmation with no body of its own to return.
+    VigiaAlterada:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: '`true` when the change succeeded.'
+        id:
+          type: string
+          description: The listing, when the change was about one.
+        ja_vigiado:
+          type: boolean
+          description: '`true` when the listing was already watched.'
+        cota:
+          type: object
+          description: '`{ total, gratis, pagas, usadas, livres }`: free slots (3 per account) plus purchased slots still valid.'
+      required:
+      - ok
+      - cota
+      description: The result of a change to the watch list.
     PreferenciasUi:
       type: object
       properties:
@@ -298,38 +582,6 @@ components:
       - prefs
       - api
       description: 'What the person set up on the screen and needs to survive an F5: filter selection, active tab and open item tabs. The content is OPAQUE — the server does not interpret the JSON, it only stores and returns it, so the screen can change fields without a database migration.'
-    Carga:
-      type: object
-      properties:
-        fontes:
-          type: array
-          items:
-            type: object
-          description: Each source with its last batch and the count it brought.
-        falhas:
-          type: array
-          items:
-            type: object
-          description: Import failures not yet marked as seen.
-        runs:
-          type: array
-          items:
-            type: object
-          description: The recent runs, newest first.
-      required:
-      - fontes
-      - falhas
-      - runs
-      description: The state of the catalog's load sources — where the listings come from and when they came.
-    Ok:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
-      required:
-      - ok
-      description: Write confirmation with no body of its own to return.
     Conta:
       type: object
       properties:
@@ -343,8 +595,85 @@ components:
       - id
       - email
       description: The person behind the session.
+    ListaClaudeCode:
+      type: object
+      properties:
+        managed_settings:
+          type: object
+          description: '`{ allowManagedMcpServersOnly: true, allowedMcpServers: [{ serverUrl }], deniedMcpServers: [{ serverUrl }] }`.'
+        comandos:
+          type: array
+          items:
+            type: string
+          description: One `claude mcp add` per allowed server.
+        fora:
+          type: array
+          items:
+            type: string
+          description: 'Watched listings left out: skills, expired, hidden, unchecked or without a valid fixed MCP URL.'
+        aviso:
+          type: string
+          description: How to deploy the settings.
+        docs:
+          type: string
+          description: Claude Code documentation for managed MCP settings.
+        api:
+          type: string
+          description: Absolute URL of this route.
+      required:
+      - managed_settings
+      - comandos
+      - fora
+      - aviso
+      - docs
+      - api
+      description: The watch list as Claude Code managed settings.
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Guest mr_…, session sess_… or ADMIN_TOKEN.
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

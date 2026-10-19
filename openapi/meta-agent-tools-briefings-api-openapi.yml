@@ -1,0 +1,484 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Briefings API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Briefings
+paths:
+  /briefings/feed.xml:
+    get:
+      operationId: get_briefings_feed_xml
+      summary: The latest 30 engineering links as RSS
+      description: 'Returns: application/rss+xml — titles, summaries, source links and topics.'
+      security: []
+      responses:
+        '200':
+          description: application/rss+xml — titles, summaries, source links and topics.
+      tags:
+      - Briefings
+  /briefings/feed.json:
+    get:
+      operationId: get_briefings_feed_json
+      summary: The latest 30 engineering links as JSON Feed
+      description: 'Returns: application/feed+json — JSON Feed 1.1 with source links and topics.'
+      security: []
+      responses:
+        '200':
+          description: application/feed+json — JSON Feed 1.1 with source links and topics.
+      tags:
+      - Briefings
+  /api/briefings:
+    get:
+      operationId: briefings_topics
+      summary: Every briefing topic with its count, the newest items across all of them and…
+      description: 'Topics are public bookmark folders (CUDA, inference, RAG, agents…). Each item is a post someone saved, its main source, the source type and a two-line summary in English and Portuguese. `?resumo=1` returns only `total` and each topic''s `slug` and `total`. 404 until the first publication.
+
+        Returns: { total, atualizado_em, topicos[{slug,nome,descricao,total,atualizado_em,tipos,api?,pagina?}], recentes[{id,slug,topicos?,data,entrou?,autor,post,fonte,tipo,previa?,titulo,resumo,importa}], inscricao, _links }'
+      security: []
+      parameters:
+      - name: resumo
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: '`1` returns only the counts.'
+      responses:
+        '200':
+          description: '{ total, atualizado_em, topicos[{slug,nome,descricao,total,atualizado_em,tipos,api?,pagina?}], recentes[{id,slug,topicos?,data,entrou?,autor,post,fonte,tipo,previa?,titulo,resumo,importa}], inscricao, _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndiceDosBriefings'
+        '404':
+          description: Briefings are not published yet.
+      tags:
+      - Briefings
+  /api/briefings/itens:
+    get:
+      operationId: briefings_links
+      summary: Every published item, filtered by topic and source type, with the count of each…
+      description: 'Values inside one parameter are OR''d; the two parameters are AND''d. Unknown values are ignored. Follow `_links.next` to walk everything.
+
+        Returns: { total, pagina, paginas, filtros, facetas, itens[{id,slug,topicos?,data,entrou?,autor,post,fonte,tipo,previa?,titulo,resumo,importa}], _links }'
+      security: []
+      parameters:
+      - name: topico
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Topic slugs, comma-separated.
+        example: rag,inference
+      - name: tipo
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - paper
+          - repo
+          - model
+          - dataset
+          - demo
+          - video
+          - docs
+          - article
+          - post
+        description: Source types, comma-separated.
+        example: paper,repo
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+        description: Page, 1–999; 20 items per page.
+      responses:
+        '200':
+          description: '{ total, pagina, paginas, filtros, facetas, itens[{id,slug,topicos?,data,entrou?,autor,post,fonte,tipo,previa?,titulo,resumo,importa}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeBriefings'
+        '404':
+          description: Briefings are not published yet.
+      tags:
+      - Briefings
+  /api/briefings/{slug}:
+    get:
+      operationId: get_api_briefings_by_slug
+      summary: One topic, newest first, 20 items per page
+      description: 'The same list the HTML page at `/briefings//` shows.
+
+        Returns: { slug, nome, descricao, total, atualizado_em, pagina, paginas, itens[{id,slug,topicos?,data,entrou?,autor,post,fonte,tipo,previa?,titulo,resumo,importa}], _links }'
+      security: []
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Topic slug from `/api/briefings`.
+        example: rag
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+        description: Page, 1–999; 20 items per page.
+      responses:
+        '200':
+          description: '{ slug, nome, descricao, total, atualizado_em, pagina, paginas, itens[{id,slug,topicos?,data,entrou?,autor,post,fonte,tipo,previa?,titulo,resumo,importa}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicoDoBriefing'
+        '404':
+          description: Unknown briefing topic.
+      tags:
+      - Briefings
+  /api/briefings/subscribe:
+    post:
+      operationId: post_api_briefings_subscribe
+      summary: Requests email confirmation for the weekly briefing list
+      description: 'Alias of `/api/boletim/assinar`. Accepts JSON or an HTML form. Only email confirmation activates the subscription or changes its topics and language. An empty topic list selects all topics. Confirmation expires after 48 hours. Five requests per network per hour; address limits return the same 202 response. Updates include one-click unsubscribe. `GET /api/boletim/config` lists available topics and availability.
+
+        Returns: { ok, status, message }'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: Email address, up to 254 characters.
+                topics:
+                  type: array
+                  items:
+                    type: string
+                  description: Topic slugs from `/api/briefings`, up to 40. Empty selects all.
+                canais:
+                  type: array
+                  items:
+                    type: string
+                  description: noticias and/or novidades. Defaults to news only.
+                lang:
+                  type: string
+                  description: Language of the emails.
+                  enum:
+                  - en
+                  - pt
+                website:
+                  type: string
+                  description: Leave empty. Anything here is treated as a bot and nothing is stored.
+              required:
+              - email
+            example:
+              email: you@company.com
+              topics:
+              - rag
+              - inference
+              lang: en
+      responses:
+        '200':
+          description: '{ ok, status, message }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Request accepted.
+                  status:
+                    type: string
+                    description: '`on_list`.'
+                  message:
+                    type: string
+                    description: What happens next, for a person.
+                required:
+                - ok
+                - status
+                - message
+        '400':
+          description: Invalid email, body or topic.
+        '429':
+          description: Network request limit. Respect Retry-After.
+        '503':
+          description: Newsletter or email transport unavailable.
+      tags:
+      - Briefings
+components:
+  schemas:
+    ItemDoBriefing:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Id of the saved post on X; the item's key across topics.
+        slug:
+          type: string
+          description: Topic the item was published under (its first topic).
+        topicos:
+          type: array
+          items:
+            type: object
+          description: 'All item topics as `{ slug, nome: { en, pt } }` in `/api/briefings/itens`.'
+        data:
+          type: string
+          description: Date the post was published, `YYYY-MM-DD`.
+        entrou:
+          type: string
+          description: First arrival in this product (ISO 8601), used by the newsletter. Absent on the legacy archive.
+        autor:
+          type: string
+          description: Handle of the post's author, with `@`.
+        post:
+          type: string
+          description: Address of the post on X.
+        fonte:
+          type: object
+          description: The main source the post cites (`url`, with `titulo` and `site` when known); `null` when the post is the source.
+          nullable: true
+        tipo:
+          type: string
+          description: What the source is, by rule over its address.
+          enum:
+          - paper
+          - repo
+          - model
+          - dataset
+          - demo
+          - video
+          - docs
+          - article
+          - post
+        previa:
+          type: object
+          description: 'The source page''s own preview: `titulo`, `site`, `imagem` (our WebP copy at `/briefings/img/<file>`, or `null`) and `generica` (`true` when the image is the site''s logo, the same in many items).'
+          nullable: true
+        titulo:
+          type: object
+          description: Headline, in English (`en`) and Portuguese (`pt`).
+        resumo:
+          type: object
+          description: What the source is, in one or two sentences, in English (`en`) and Portuguese (`pt`).
+        importa:
+          type: object
+          description: Why an engineer should care, in English (`en`) and Portuguese (`pt`).
+      required:
+      - id
+      - slug
+      - data
+      - autor
+      - post
+      - fonte
+      - tipo
+      - titulo
+      - resumo
+      - importa
+      description: 'One curated link: the saved post, its main source and a two-line summary.'
+    PaginaDeBriefings:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Items that match the filters.
+        pagina:
+          type: integer
+          description: This page, from 1.
+        paginas:
+          type: integer
+          description: How many pages match.
+        filtros:
+          type: object
+          description: The filters in effect (`topico`, `tipo`), only values that exist.
+        facetas:
+          type: object
+          description: '`topico` and `tipo`, each a list of `{ v, n }`. Each group is counted with the OTHER group''s filter, so picking a topic never zeroes the rest.'
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemDoBriefing'
+          description: The items of this page, newest first; an item in two topics appears once.
+        _links:
+          type: object
+          description: '`self`, `next` (`null` on the last page) and `indice`.'
+      required:
+      - total
+      - pagina
+      - paginas
+      - filtros
+      - facetas
+      - itens
+      - _links
+      description: A slice of every published item by topic and source type, 20 per page, with the counts for each filter.
+    TopicoDosBriefings:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Stable address of the topic (`/briefings/<slug>/`).
+        nome:
+          type: object
+          description: Name, in English (`en`) and Portuguese (`pt`).
+        descricao:
+          type: object
+          description: What the topic covers, in English (`en`) and Portuguese (`pt`).
+        total:
+          type: integer
+          description: Published items in the topic.
+        atualizado_em:
+          type: string
+          description: Date of the newest item, `YYYY-MM-DD`.
+        tipos:
+          type: object
+          description: 'Items per source type, e.g. `{ "paper": 12, "repo": 5 }`.'
+        api:
+          type: string
+          description: Absolute URL of the topic in this API.
+        pagina:
+          type: string
+          description: Absolute URL of the topic's HTML page.
+      required:
+      - slug
+      - nome
+      - descricao
+      - total
+      - atualizado_em
+      - tipos
+      description: 'A topic: one public bookmark folder, with its count.'
+    TopicoDoBriefing:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Topic address.
+        nome:
+          type: object
+          description: Name, in English (`en`) and Portuguese (`pt`).
+        descricao:
+          type: object
+          description: What the topic covers, in English (`en`) and Portuguese (`pt`).
+        total:
+          type: integer
+          description: Published items in the topic.
+        atualizado_em:
+          type: string
+          description: Date of the newest item, `YYYY-MM-DD`.
+        pagina:
+          type: integer
+          description: This page, from 1.
+        paginas:
+          type: integer
+          description: How many pages the topic has.
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemDoBriefing'
+          description: The items of this page.
+        _links:
+          type: object
+          description: '`self`, `next` (`null` on the last page), `pagina` (HTML) and `indice`.'
+      required:
+      - slug
+      - nome
+      - descricao
+      - total
+      - atualizado_em
+      - pagina
+      - paginas
+      - itens
+      - _links
+      description: One topic, 20 items per page, newest first.
+    IndiceDosBriefings:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Published items across topics (an item in two topics counts once).
+        atualizado_em:
+          type: string
+          description: When the publisher generated this index (ISO 8601).
+        topicos:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicoDosBriefings'
+          description: The topics, in the publisher's order.
+        recentes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemDoBriefing'
+          description: The 30 newest items across topics.
+        inscricao:
+          type: object
+          description: '`{ aberta }`: `true` when `POST /api/briefings/subscribe` takes new subscriptions; until then it answers 503.'
+        _links:
+          type: object
+          description: '`self`, `pagina` (the HTML page) and `api_index`.'
+      required:
+      - total
+      - atualizado_em
+      - topicos
+      - recentes
+      - inscricao
+      - _links
+      description: Every topic with its count, the newest items across all of them and whether email subscriptions are open.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

@@ -1,0 +1,2727 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Meta Agent Tools",
+    "version": "1.0.0",
+    "description": "Meta Agent Tools — registry of MCP servers, skills and plugins."
+  },
+  "servers": [
+    {
+      "url": "https://agentalog.com"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Guest mr_…, session sess_… or ADMIN_TOKEN."
+      }
+    },
+    "schemas": {
+      "PaginaDeAnuncios": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Anuncio"
+            },
+            "description": "The listings on this page."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Page size applied."
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Offset applied."
+          },
+          "next_offset": {
+            "type": "integer",
+            "description": "Offset of the next page; `null` when there is no more.",
+            "nullable": true
+          },
+          "low_count": {
+            "type": "integer",
+            "description": "How many `low` listings match `q` (cap 200). Zero without a term."
+          },
+          "low_capped": {
+            "type": "boolean",
+            "description": "`true` when the count hit the cap — there are at least that many."
+          },
+          "low_included": {
+            "type": "boolean",
+            "description": "`true` when `low=1` mixed the tail into this page."
+          },
+          "api": {
+            "type": "string",
+            "description": "Absolute URL of this listing."
+          }
+        },
+        "required": [
+          "items",
+          "limit",
+          "offset",
+          "next_offset",
+          "low_count",
+          "low_capped",
+          "low_included",
+          "api"
+        ],
+        "description": "A page of the public mosaic. No `total`: the catalog has tens of thousands of listings and counting everything on each search would be expensive without changing any decision."
+      },
+      "Anuncio": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Listing ID; it is the key across the whole API."
+          },
+          "kind": {
+            "type": "string",
+            "description": "What this listing is."
+          },
+          "category": {
+            "type": "string",
+            "description": "Category chosen by whoever published.",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "tagline": {
+            "type": "string",
+            "description": "One line saying what it is for.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "Long description, when whoever published wrote one.",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "description": "Where the resource lives — the MCP endpoint, the SKILL.md or the repository."
+          },
+          "status": {
+            "type": "string",
+            "description": "State in the catalog."
+          },
+          "origin": {
+            "type": "string",
+            "description": "Where the listing came from: `official`, `marketplace`, `directory` or a community submission."
+          },
+          "origin_id": {
+            "type": "string",
+            "description": "Identifier of the listing at the source.",
+            "nullable": true
+          },
+          "install": {
+            "type": "string",
+            "description": "How to install, when the source says.",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Source code URL, when known.",
+            "nullable": true
+          },
+          "transporte": {
+            "type": "string",
+            "description": "MCP transport: `stdio`, `http`, `sse`.",
+            "nullable": true
+          },
+          "ns": {
+            "type": "string",
+            "description": "Server namespace in the official registry.",
+            "nullable": true
+          },
+          "versao": {
+            "type": "string",
+            "description": "Version declared by the source.",
+            "nullable": true
+          },
+          "oficial_status": {
+            "type": "string",
+            "description": "State in the official MCP registry, when applicable.",
+            "nullable": true
+          },
+          "repo_host": {
+            "type": "string",
+            "description": "Where the repository is hosted, e.g. `github`.",
+            "nullable": true
+          },
+          "topico": {
+            "type": "string",
+            "description": "Topic inferred from the repository, used in the facets.",
+            "nullable": true
+          },
+          "stars": {
+            "type": "integer",
+            "description": "Repository stars at the last check.",
+            "nullable": true
+          },
+          "forks": {
+            "type": "integer",
+            "description": "Repository forks at the last check.",
+            "nullable": true
+          },
+          "prs_abertos": {
+            "type": "integer",
+            "description": "Open pull requests at the last check.",
+            "nullable": true
+          },
+          "pushed_at": {
+            "type": "string",
+            "description": "Last push to the repository (UTC).",
+            "nullable": true
+          },
+          "repo_estado": {
+            "type": "string",
+            "description": "How the repository is doing (active, stalled, archived, renamed, gone).",
+            "nullable": true
+          },
+          "likes": {
+            "type": "integer",
+            "description": "How many people liked it — the like is reversible and counts people."
+          },
+          "comments": {
+            "type": "integer",
+            "description": "Public comments on the listing."
+          },
+          "visits": {
+            "type": "integer",
+            "description": "Visits counted by the hop; at most 1 per owner per day."
+          },
+          "created_at": {
+            "type": "string",
+            "description": "When it entered the catalog (UTC)."
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Last change (UTC).",
+            "nullable": true
+          },
+          "mine": {
+            "type": "boolean",
+            "description": "`true` when the listing is yours — only then can you edit it."
+          },
+          "api": {
+            "type": "string",
+            "description": "Absolute URL of this listing's page."
+          },
+          "go": {
+            "type": "string",
+            "description": "Hop URL: redirects to `url` and counts the visit."
+          },
+          "comments_api": {
+            "type": "string",
+            "description": "Absolute URL of this listing's comments."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "category",
+          "name",
+          "tagline",
+          "body",
+          "url",
+          "status",
+          "origin",
+          "origin_id",
+          "install",
+          "source",
+          "transporte",
+          "ns",
+          "versao",
+          "oficial_status",
+          "repo_host",
+          "topico",
+          "stars",
+          "forks",
+          "prs_abertos",
+          "pushed_at",
+          "repo_estado",
+          "likes",
+          "comments",
+          "visits",
+          "created_at",
+          "updated_at",
+          "mine",
+          "api",
+          "go",
+          "comments_api"
+        ],
+        "description": "A catalog listing: MCP server, Agent Skill or Claude Code plugin."
+      },
+      "Facetas": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Live listings in the catalog."
+          },
+          "facetas": {
+            "type": "object",
+            "description": "Map of facet → list of `{ v, n }` (value and count): `kind`, `origin`, `category`, `repo_estado`, `transporte`…"
+          },
+          "topico_inferido": {
+            "type": "object",
+            "description": "Topics deduced from the repositories, with the count of each."
+          },
+          "api": {
+            "type": "string",
+            "description": "Absolute URL of this route."
+          }
+        },
+        "required": [
+          "total",
+          "facetas",
+          "topico_inferido",
+          "api"
+        ],
+        "description": "The whole catalog's breakdowns, to build a filter without sweeping the listings."
+      },
+      "PaginaV01": {
+        "type": "object",
+        "properties": {
+          "servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServidorV01"
+            },
+            "description": "The servers on this page."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "`next_cursor` and `count`, in the spec's format."
+          }
+        },
+        "required": [
+          "servers",
+          "metadata"
+        ],
+        "description": "The subregistry page, cursor-paginated as the v0.1 spec requires."
+      },
+      "ServidorV01": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Server name in namespace/name format."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the server does.",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "description": "Declared version.",
+            "nullable": true
+          },
+          "repository": {
+            "type": "object",
+            "description": "Where the code lives.",
+            "nullable": true
+          },
+          "remotes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The server's remote endpoints, when any.",
+            "nullable": true
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The server's installable packages, when any.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "version",
+          "repository",
+          "remotes",
+          "packages"
+        ],
+        "description": "An MCP server in the Official Registry format (spec v0.1) — what a generic MCP client expects to read."
+      },
+      "Comentario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Comment ID, for deleting."
+          },
+          "body": {
+            "type": "string",
+            "description": "The comment text."
+          },
+          "author": {
+            "type": "string",
+            "description": "Nickname of whoever wrote it.",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "description": "When it was written (UTC)."
+          },
+          "mine": {
+            "type": "boolean",
+            "description": "`true` if it is yours — only you can delete it."
+          }
+        },
+        "required": [
+          "id",
+          "body",
+          "author",
+          "created_at",
+          "mine"
+        ],
+        "description": "A public comment on a listing."
+      },
+      "Like": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "Always `true`."
+          },
+          "liked": {
+            "type": "boolean",
+            "description": "Whether YOU are liking it now."
+          },
+          "likes": {
+            "type": "integer",
+            "description": "Total people liking the listing."
+          }
+        },
+        "required": [
+          "ok",
+          "liked",
+          "likes"
+        ],
+        "description": "The state of the like after the call. Turning it on and off return the same shape."
+      },
+      "Conta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of the account."
+          },
+          "email": {
+            "type": "string",
+            "description": "E-mail confirmed by code."
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "description": "The person behind the session."
+      },
+      "Carga": {
+        "type": "object",
+        "properties": {
+          "fontes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Each source with its last batch and the count it brought."
+          },
+          "falhas": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Import failures not yet marked as seen."
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The recent runs, newest first."
+          }
+        },
+        "required": [
+          "fontes",
+          "falhas",
+          "runs"
+        ],
+        "description": "The state of the catalog's load sources — where the listings come from and when they came."
+      },
+      "PreferenciasUi": {
+        "type": "object",
+        "properties": {
+          "prefs": {
+            "type": "object",
+            "description": "The stored preferences, as the interface wrote them. `{}` when nothing was ever stored."
+          },
+          "api": {
+            "type": "string",
+            "description": "Absolute URL of this route."
+          }
+        },
+        "required": [
+          "prefs",
+          "api"
+        ],
+        "description": "What the person set up on the screen and needs to survive an F5: filter selection, active tab and open item tabs. The content is OPAQUE — the server does not interpret the JSON, it only stores and returns it, so the screen can change fields without a database migration."
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`."
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "description": "Write confirmation with no body of its own to return."
+      },
+      "Billing": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "Always `x402` — the only billing protocol accepted."
+          },
+          "mode": {
+            "type": "string",
+            "description": "Seller mode: `live` charges for real, `dev` lets calls through unpaid."
+          },
+          "network": {
+            "type": "string",
+            "description": "USDC network: `base` in production, `base-sepolia` in staging."
+          },
+          "chain_id": {
+            "type": "integer",
+            "description": "EVM chain ID of the network above, so the wallet signs on the right chain."
+          },
+          "pay_to": {
+            "type": "string",
+            "description": "Address that receives the payment.",
+            "nullable": true
+          },
+          "homolog": {
+            "type": "boolean",
+            "description": "Staging seam on: the loop can be closed without spending USDC."
+          },
+          "dev": {
+            "type": "boolean",
+            "description": "Development mode: the 402 is simulated."
+          },
+          "dev_gate": {
+            "type": "string",
+            "description": "How dev mode is unlocked, when it exists.",
+            "nullable": true
+          },
+          "facilitator": {
+            "type": "string",
+            "description": "URL of the facilitator that verifies and settles the payment."
+          },
+          "asset": {
+            "type": "string",
+            "description": "Accepted currency — always `USDC`."
+          },
+          "asset_address": {
+            "type": "string",
+            "description": "USDC contract on the network above."
+          },
+          "faucet": {
+            "type": "string",
+            "description": "Test-USDC faucet; only on base-sepolia.",
+            "nullable": true
+          },
+          "wallets": {
+            "type": "object",
+            "description": "Links to wallets that speak x402 (metamask, coinbase, base_app)."
+          },
+          "product": {
+            "type": "string",
+            "description": "Name of the product charging."
+          },
+          "prices": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Precos"
+              }
+            ],
+            "description": "What each paid action costs, in USD."
+          }
+        },
+        "required": [
+          "provider",
+          "mode",
+          "network",
+          "chain_id",
+          "pay_to",
+          "homolog",
+          "dev",
+          "dev_gate",
+          "facilitator",
+          "asset",
+          "asset_address",
+          "faucet",
+          "wallets",
+          "product",
+          "prices"
+        ],
+        "description": "x402 configuration in force and the product's prices. Reading, liking, commenting and visiting are free; what costs an agent is publishing."
+      },
+      "Precos": {
+        "type": "object",
+        "properties": {
+          "contact_agent_usd": {
+            "type": "number",
+            "description": "Agent contact."
+          },
+          "listing_agent_usd": {
+            "type": "number",
+            "description": "Publishing a listing as an agent (a human with an account publishes for free)."
+          }
+        },
+        "required": [
+          "contact_agent_usd",
+          "listing_agent_usd"
+        ],
+        "description": "Prices in force, in dollars. Read them here, not from the documentation."
+      },
+      "Metricas": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "description": "Product name."
+          },
+          "today": {
+            "type": "string",
+            "description": "Reference day (UTC, YYYY-MM-DD)."
+          },
+          "today_visits": {
+            "type": "integer",
+            "description": "Visits counted today."
+          },
+          "today_contacts": {
+            "type": "integer",
+            "description": "Contact messages received today. Only with `METRICS_TOKEN`: contact does not leave without a token."
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "One record per day of the window, with the counts of each metric."
+          },
+          "usage": {
+            "type": "object",
+            "description": "Usage per product resource — here, listings created through the surface (origin community); the registry's own catalog load does not count as usage."
+          },
+          "accounts": {
+            "type": "object",
+            "description": "Total guests and accounts."
+          },
+          "financeiro": {
+            "type": "object",
+            "description": "Aggregate of the day: `hoje_usd`, `hoje_count`, `rede`. Only with `METRICS_TOKEN`: money does not leave without a token; the full series is `payments`."
+          },
+          "payments": {
+            "type": "object",
+            "description": "Finance summary; only with METRICS_TOKEN."
+          }
+        },
+        "required": [
+          "app",
+          "today",
+          "today_visits",
+          "days",
+          "usage",
+          "accounts"
+        ],
+        "description": "7-day panel. `payments` only shows with the operator token and only on Base mainnet."
+      },
+      "EstadoFila": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "Always `true` when there is a snapshot."
+          },
+          "fila": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RetratoFila"
+              }
+            ],
+            "description": "The queue's numbers."
+          }
+        },
+        "required": [
+          "ok",
+          "fila"
+        ],
+        "description": "The snapshot of the enrichment queue: how many listings have been checked and what is known about them."
+      },
+      "RetratoFila": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Listings in the queue."
+          },
+          "concluidos": {
+            "type": "integer",
+            "description": "Already checked."
+          },
+          "vencidos": {
+            "type": "integer",
+            "description": "With an expired check, waiting for a new pass."
+          },
+          "com_falha": {
+            "type": "integer",
+            "description": "That failed the check."
+          },
+          "processados": {
+            "type": "integer",
+            "description": "Processed in the current window."
+          },
+          "estados": {
+            "type": "object",
+            "description": "Count per `repo_estado`: ativo, parado, arquivado, renomeado, sumiu."
+          },
+          "motivos": {
+            "type": "object",
+            "description": "Count per reason the listing is in the state it is in."
+          }
+        },
+        "required": [
+          "total",
+          "concluidos",
+          "vencidos",
+          "com_falha",
+          "processados",
+          "estados",
+          "motivos"
+        ],
+        "description": "Counters of the enrichment queue, pushed by the robot that checks the repositories."
+      }
+    }
+  },
+  "paths": {
+    "/okf/{arquivo}": {
+      "get": {
+        "operationId": "get_okf_by_arquivo",
+        "summary": "OKF bundle (Open Knowledge Format v0.1): markdown with frontmatter so an agent reads the whole product without parsing HTML.",
+        "description": "Returns: `text/markdown`. Start at `/okf/index.md`, which lists the bundle.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "arquivo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`text/markdown`. Start at `/okf/index.md`, which lists the bundle."
+          },
+          "404": {
+            "description": "File outside the bundle."
+          }
+        }
+      }
+    },
+    "/.well-known/{arquivo}": {
+      "get": {
+        "operationId": "get_well_known_by_arquivo",
+        "summary": "Machine discovery before the home page: `api-catalog` (RFC 9727, a linkset with the API and the MCP), `security.txt` (RFC 9116) and `mcp-registry-auth` (the official MCP registry key).",
+        "description": "Returns: `application/linkset+json` for the api-catalog; `text/plain` for the other two.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "arquivo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`application/linkset+json` for the api-catalog; `text/plain` for the other two."
+          },
+          "404": {
+            "description": "Name outside the four published."
+          }
+        }
+      }
+    },
+    "/apis.json": {
+      "get": {
+        "operationId": "get_apis_json",
+        "summary": "APIs.json (apisjson.org, 0.19): the index APIs.io harvests — the API, the MCP, OpenAPI, guide and OKF bundle in one file. Also at `/.well-known/apis.json`.",
+        "description": "Returns: `application/json` in the APIs.json 0.19 format: `apis[]` with `baseURL`, `humanURL` and `properties[]`.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "`application/json` in the APIs.json 0.19 format: `apis[]` with `baseURL`, `humanURL` and `properties[]`."
+          }
+        }
+      }
+    },
+    "/feed.xml": {
+      "get": {
+        "operationId": "get_feed_xml",
+        "summary": "RSS 2.0 of the most recently published listings.",
+        "description": "Returns: `application/rss+xml`.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "`application/rss+xml`."
+          }
+        }
+      }
+    },
+    "/feed.json": {
+      "get": {
+        "operationId": "get_feed_json",
+        "summary": "JSON Feed 1.1 of the most recently published listings — the same stream as the RSS.",
+        "description": "Returns: `application/feed+json`.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "`application/feed+json`."
+          }
+        }
+      }
+    },
+    "/api/": {
+      "get": {
+        "operationId": "api_index",
+        "summary": "Self-describing index: the whole API surface, with quota and quickstart.",
+        "description": "Returns: { name, description, auth, docs, endpoints, quota, mcp, quickstart }",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "{ name, description, auth, docs, endpoints, quota, mcp, quickstart }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Product name."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "What the registry is and what it is not."
+                    },
+                    "auth": {
+                      "type": "object",
+                      "description": "Each authentication mode and how to obtain it."
+                    },
+                    "docs": {
+                      "type": "object",
+                      "description": "Links to llms.txt, llms-full.txt, openapi.json, MCP and the UI."
+                    },
+                    "endpoints": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      },
+                      "description": "Every endpoint with method, path, auth, absolute URL and what it returns."
+                    },
+                    "quota": {
+                      "type": "object",
+                      "description": "What is free, what costs and how to pay — before you spend a call."
+                    },
+                    "mcp": {
+                      "type": "object",
+                      "description": "Address and transport of the MCP server."
+                    },
+                    "quickstart": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "The calls that take you from zero to the first published listing."
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "description",
+                    "auth",
+                    "docs",
+                    "endpoints",
+                    "quota",
+                    "mcp",
+                    "quickstart"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Liveness and the commit deployed right now — it is how the smoke waits for its own deploy.",
+        "description": "Returns: { ok, app, build, ts }",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "{ ok, app, build, ts }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true` when the Worker answers."
+                    },
+                    "app": {
+                      "type": "string",
+                      "description": "Product name."
+                    },
+                    "build": {
+                      "type": "string",
+                      "description": "Deployed commit; CI passes the short SHA on deploy."
+                    },
+                    "ts": {
+                      "type": "string",
+                      "description": "Time of the response (UTC, ISO-8601)."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "app",
+                    "build",
+                    "ts"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "operationId": "post_mcp",
+        "summary": "MCP server over HTTP (Streamable HTTP, JSON-RPC 2.0) — plugs into the client with nothing to install.",
+        "description": "The tools are the operations of this same catalog; the MCP has no backend of its own. `GET /mcp` returns the server card.\nReturns: JSON-RPC 2.0 response (`initialize`, `tools/list` or `tools/call`).\nCredentials go in the usual headers (X-Guest-Token, Authorization, X-PAYMENT) and are forwarded to the API.\nAn exhausted quota comes back as a 402 with accepts[] inside the tool result — pay and repeat.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "JSON-RPC 2.0 response (`initialize`, `tools/list` or `tools/call`)."
+          }
+        }
+      }
+    },
+    "/api/guest": {
+      "post": {
+        "operationId": "create_guest",
+        "summary": "Creates a guest `mr_…` — it is the identity that likes, comments and visits.",
+        "description": "Asks for no e-mail. Publishing a listing is what requires an account (or a payment).\nReturns: { token }",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "{ token }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "The guest, prefix `mr_`. Send it in `X-Guest-Token` or as Bearer."
+                    }
+                  },
+                  "required": [
+                    "token"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings": {
+      "get": {
+        "operationId": "list_listings",
+        "summary": "The public mosaic: paginated search of the catalog's live listings.",
+        "description": "Only `live` in the mosaic. With `q`, `low_count` says how many `low` listings (few stars or no clear license) match the term — LIKE with a cap of 200. `low=1` includes that tail; without `q` the parameter is ignored.\nReturns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}], limit, offset, next_offset, low_count, low_capped, low_included, api }",
+        "security": [],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free text over the name, the tagline and the description.",
+            "example": "postgres"
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mcp",
+                "skill",
+                "plugin"
+              ]
+            },
+            "description": "Which kind of resource to fetch."
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Category declared by whoever published."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "recent",
+              "enum": [
+                "recent",
+                "likes",
+                "visits"
+              ]
+            },
+            "description": "Result order."
+          },
+          {
+            "name": "low",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "`1` includes `low` listings in the result. Only valid together with `q`."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 24
+            },
+            "description": "Listings per page."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "How many listings to skip. Use `next_offset` from the previous response."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}], limit, offset, next_offset, low_count, low_capped, low_included, api }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaDeAnuncios"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_listing",
+        "summary": "Registers an MCP server, a skill or a plugin in the catalog. It comes in as `pending`.",
+        "description": "Two doors to the same action. Human with a session: free, 1 per day, at most 3 in the queue. Agent (with or without a guest): **402 with `accepts[]`**, $0.10 — pay and repeat. For a skill, the `SKILL.md` URL is enough; the rest is checked. **Validates before charging:** a refused body (400) and an exhausted quota (429) come BEFORE the 402, so no payment settles for a listing already known not to get in. A valid body without payment keeps receiving the 402 with the price.\nReturns: { ok, id, status }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "description": "What is being registered."
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "MCP endpoint, SKILL.md URL or the plugin's repository."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Display name; without it, taken from the source."
+                  },
+                  "tagline": {
+                    "type": "string",
+                    "description": "One line saying what it is for."
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Long description, optional."
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Category so the listing shows up under the right filter."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "url"
+                ]
+              },
+              "example": {
+                "kind": "mcp",
+                "category": "tools",
+                "name": "Name",
+                "tagline": "One line",
+                "url": "https://example.com/mcp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, id, status }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true` when the request went in."
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "ID of the created listing."
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Always `pending`: everything goes through the queue before turning live."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`kind` or `url` missing, invalid URL, URL that does not answer or refused field."
+          },
+          "402": {
+            "description": "Quota exceeded. The response carries `accepts[]` (x402, USDC on Base): pay and repeat the same call with `X-PAYMENT`."
+          },
+          "429": {
+            "description": "1 per day, at most 3 pending — applies to both doors, and is checked before charging."
+          },
+          "502": {
+            "description": "The payment settled and the write failed. The body carries `transaction`: keep it and talk to support."
+          }
+        }
+      }
+    },
+    "/api/facets": {
+      "get": {
+        "operationId": "get_api_facets",
+        "summary": "The whole catalog's counts by kind, provenance, category and repository state.",
+        "description": "Exists to build a filter without sweeping the listings: there are tens of thousands, and asking for the list just to count would be expensive. Also brings `topico_inferido`, deduced from the repositories.\nReturns: { total, facetas, topico_inferido, api }",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "{ total, facetas, topico_inferido, api }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Facetas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0.1/servers": {
+      "get": {
+        "operationId": "list_mcp_servers",
+        "summary": "MCP subregistry in the Official Registry format (spec v0.1), cursor-paginated.",
+        "description": "Only `kind=mcp` and only `live`. It is the route a generic MCP client knows how to read without knowing this product. `GET /v0/servers` is an alias of the same resource, kept for whoever already pointed there — this is the canonical URL.\nReturns: { servers[{name,description,version,repository,remotes,packages}], metadata }",
+        "security": [],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free text over the server's name and description."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque cursor of the next page, from `metadata.next_cursor`."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30
+            },
+            "description": "Servers per page."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ servers[{name,description,version,repository,remotes,packages}], metadata }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaV01"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings/{id}": {
+      "get": {
+        "operationId": "get_listing",
+        "summary": "One listing's page. The owner sees their own even when pending or hidden.",
+        "description": "Returns: { id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api }",
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Anuncio"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The listing does not exist, or it is not yours and is not live/low."
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch_api_listings_by_id",
+        "summary": "Edits a listing of yours. Changing the URL sends it back to the queue.",
+        "description": "The URL is what moderation looks at; swapping it after approval would bypass the queue, so the listing goes back to `pending`.\nReturns: { ok, id, status }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New display name."
+                  },
+                  "tagline": {
+                    "type": "string",
+                    "description": "New summary line."
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "New long description."
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "New category."
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "New URL — changing this sends the listing back to `pending`."
+                  }
+                }
+              },
+              "example": {
+                "tagline": "…"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, id, status }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true`."
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "ID of the edited listing."
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "State after the edit; back to `pending` if the URL changed."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field in the body."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "404": {
+            "description": "The listing is not yours or does not exist."
+          }
+        }
+      }
+    },
+    "/api/go/{id}": {
+      "get": {
+        "operationId": "go_listing",
+        "summary": "Hop to the listing's URL: redirects and counts the visit.",
+        "description": "Counts at most 1 visit per owner per day. The `X-Visit-Counted` header says whether this call counted — it is how the client knows without counting twice.\nReturns: `302` with `Location` to the listing's URL, and the `X-Visit-Counted` header.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`302` with `Location` to the listing's URL, and the `X-Visit-Counted` header."
+          },
+          "404": {
+            "description": "The listing does not exist or is not live/low."
+          }
+        }
+      }
+    },
+    "/api/listings/{id}/comments": {
+      "get": {
+        "operationId": "list_comments",
+        "summary": "Public comments on a live listing.",
+        "description": "With a credential on the call, each comment of yours comes with `mine: true`.\nReturns: { items[{id,body,author,created_at,mine}], total }",
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ items[{id,body,author,created_at,mine}], total }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Comentario"
+                      },
+                      "description": "The comments, newest first."
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "How many comments the listing has."
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "total"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The listing does not exist or is not live."
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_listings_by_id_comments",
+        "summary": "Writes a comment on the listing. Cap of 20 per hour per owner.",
+        "description": "Returns: { ok, id, body }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "description": "The comment text."
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              },
+              "example": {
+                "body": "text"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, id, body }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true` when the comment went in."
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "ID of the created comment."
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "The stored text."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "id",
+                    "body"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty or too long text."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "404": {
+            "description": "The listing does not exist."
+          },
+          "429": {
+            "description": "More than 20 comments in the hour."
+          }
+        }
+      }
+    },
+    "/api/comments/{id}": {
+      "delete": {
+        "operationId": "delete_api_comments_by_id",
+        "summary": "Deletes a comment of yours. Someone else's comment answers 404, not 403.",
+        "description": "The 404 is on purpose: the API does not confirm that a comment with that id exists if it is not yours.\nReturns: { ok, id }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ ok, id }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true`."
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "The id that was removed."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "404": {
+            "description": "The resource does not exist (or is not yours — the API does not tell the two apart on purpose)."
+          }
+        }
+      }
+    },
+    "/api/listings/{id}/like": {
+      "post": {
+        "operationId": "like_listing",
+        "summary": "Likes the listing. Calling again does not add up: the counter counts people.",
+        "description": "Returns: { ok, liked, likes }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ ok, liked, likes }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Like"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "404": {
+            "description": "The resource does not exist (or is not yours — the API does not tell the two apart on purpose)."
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_api_listings_by_id_like",
+        "summary": "Unlikes and gives the point back to the public counter.",
+        "description": "Returns: { ok, liked, likes }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ ok, liked, likes }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Like"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "404": {
+            "description": "The resource does not exist (or is not yours — the API does not tell the two apart on purpose)."
+          }
+        }
+      }
+    },
+    "/api/me/listings": {
+      "get": {
+        "operationId": "get_api_me_listings",
+        "summary": "The owner's listings in any state, including pending and hidden.",
+        "description": "It is the only route that shows what is not live yet — the public mosaic never does.\nReturns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Anuncio"
+                      },
+                      "description": "The account's listings, in any state."
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "operationId": "get_api_me",
+        "summary": "The session's account and, for the admin, the load state.",
+        "description": "Returns: { user{id,email}, admin, carga?{fontes,falhas,runs} }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ user{id,email}, admin, carga?{fontes,falhas,runs} }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Conta"
+                        }
+                      ],
+                      "description": "The person who owns the session."
+                    },
+                    "admin": {
+                      "type": "boolean",
+                      "description": "Whether this account is the `ADMIN_EMAIL`."
+                    },
+                    "carga": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Carga"
+                        }
+                      ],
+                      "description": "State of the load sources; admin only."
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "admin"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/me/ui": {
+      "get": {
+        "operationId": "get_api_me_ui",
+        "summary": "The owner's screen preferences: search, filter, sort and theme.",
+        "description": "Exists so what the person set up survives an F5 and reopening the app on another device. A refresh is not a new screen — see AGENTS-UI.md. A guest has none: without an account there is nobody to give the data back to later, so the guest stays in the browser's `localStorage` only.\nReturns: { prefs, api }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ prefs, api }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenciasUi"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_me_ui",
+        "summary": "Stores the owner's screen preferences, replacing the previous ones.",
+        "description": "It is PUT and not PATCH on purpose: the client sends the whole screen state, not a delta. Cap of 8 KB — this is a screen preference, not a blob store.\nReturns: { ok }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prefs": {
+                    "type": "object",
+                    "description": "The interface state to keep. Opaque to the server: any JSON within the cap works."
+                  }
+                },
+                "required": [
+                  "prefs"
+                ]
+              },
+              "example": {
+                "prefs": {
+                  "q": "postgres",
+                  "kind": "mcp",
+                  "sort": "likes",
+                  "tema": "escuro"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body that is not JSON (`bad_json`) or without the `prefs` key (`prefs`)."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "405": {
+            "description": "Method other than GET or PUT on this route."
+          },
+          "413": {
+            "description": "Preferences above the 8 KB cap (`grande`)."
+          }
+        }
+      }
+    },
+    "/api/auth/start": {
+      "post": {
+        "operationId": "post_api_auth_start",
+        "summary": "Sends the 6-digit code by e-mail to create the account or sign in to it.",
+        "description": "Returns: { ok }",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "E-mail that will receive the code."
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              },
+              "example": {
+                "email": "you@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "E-mail missing or malformed."
+          },
+          "429": {
+            "description": "Too many requests for the same e-mail."
+          }
+        }
+      }
+    },
+    "/api/auth/verify": {
+      "post": {
+        "operationId": "post_api_auth_verify",
+        "summary": "Exchanges the code for a `sess_…` session.",
+        "description": "Returns: { ok, token, user{id,email} }",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "The same e-mail as in `/api/auth/start`."
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "The 6 digits that arrived by e-mail."
+                  }
+                },
+                "required": [
+                  "email",
+                  "code"
+                ]
+              },
+              "example": {
+                "email": "you@example.com",
+                "code": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, token, user{id,email} }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true` when the code matched."
+                    },
+                    "token": {
+                      "type": "string",
+                      "description": "Session `sess_…` to use in `Authorization: Bearer`."
+                    },
+                    "user": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Conta"
+                        }
+                      ],
+                      "description": "The person who just signed in."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "token",
+                    "user"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong or expired code."
+          },
+          "429": {
+            "description": "Too many attempts."
+          }
+        }
+      }
+    },
+    "/api/auth/claim": {
+      "post": {
+        "operationId": "post_api_auth_claim",
+        "summary": "Ties a guest to the account: its likes and comments become the account's.",
+        "description": "Returns: { ok, claimed }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "guest_token": {
+                    "type": "string",
+                    "description": "Guest `mr_…` to attach to the account."
+                  }
+                },
+                "required": [
+                  "guest_token"
+                ]
+              },
+              "example": {
+                "guest_token": "mr_…"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, claimed }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true`."
+                    },
+                    "claimed": {
+                      "type": "integer",
+                      "description": "How many records changed owner."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "claimed"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`guest_token` missing."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "post_api_auth_logout",
+        "summary": "Invalidates the current session.",
+        "description": "Returns: { ok }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/billing": {
+      "get": {
+        "operationId": "billing",
+        "summary": "x402 configuration in force and the agent prices for contact and publishing.",
+        "description": "Returns: { provider, mode, network, chain_id, pay_to, homolog, dev, dev_gate, facilitator, asset, asset_address, faucet, wallets, product, prices{contact_agent_usd,listing_agent_usd} }",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "{ provider, mode, network, chain_id, pay_to, homolog, dev, dev_gate, facilitator, asset, asset_address, faucet, wallets, product, prices{contact_agent_usd,listing_agent_usd} }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "operationId": "contact",
+        "summary": "Talks to support: a human solves Turnstile, an agent pays $0.10 in x402.",
+        "description": "The first agent message is free; after that the backoff is 60s doubling up to a 1-hour cap, announced in `Retry-After`.\nReturns: { ok }",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "What to call the person writing."
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Where to reply."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "What you want to say."
+                  },
+                  "form_ts": {
+                    "type": "integer",
+                    "description": "When the form was opened; it is the anti-robot of the human path."
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "message"
+                ]
+              },
+              "example": {
+                "name": "…",
+                "email": "a@example.com",
+                "message": "…",
+                "form_ts": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required field missing."
+          },
+          "402": {
+            "description": "Quota exceeded. The response carries `accepts[]` (x402, USDC on Base): pay and repeat the same call with `X-PAYMENT`."
+          },
+          "429": {
+            "description": "Agent backoff: wait for `Retry-After`."
+          }
+        }
+      }
+    },
+    "/api/visit": {
+      "post": {
+        "operationId": "post_api_visit",
+        "summary": "Ping from the interface that increments the day's visits. Agents need not call it.",
+        "description": "Smoke does not count: `X-MM-Smoke`, User-Agent `mm-smoke` or `smoke: true` in the body come in as `counted: false`.\nReturns: { ok, counted, reason? }",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "p": {
+                    "type": "string",
+                    "description": "Path of the visited page."
+                  },
+                  "smoke": {
+                    "type": "boolean",
+                    "description": "`true` marks the call as a test and it does not enter the count."
+                  }
+                }
+              },
+              "example": {
+                "p": "/"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, counted, reason? }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true`."
+                    },
+                    "counted": {
+                      "type": "boolean",
+                      "description": "Whether the visit entered the day's count."
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Why it did not count, when `counted` is `false`."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "counted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "operationId": "get_api_metrics",
+        "summary": "Metrics of the last 7 days. With the operator token, includes payments.",
+        "description": "Without credentials it returns visits, usage and accounts. With `METRICS_TOKEN` as Bearer it adds `payments` — and only on Base mainnet, because staging numbers on a finance panel mislead.\nReturns: { app, today, today_visits, today_contacts?, days, usage, accounts, financeiro?, payments? }",
+        "security": [],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "`Bearer <METRICS_TOKEN>` to include the finance block."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ app, today, today_visits, today_contacts?, days, usage, accounts, financeiro?, payments? }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metricas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fila": {
+      "get": {
+        "operationId": "get_api_fila",
+        "summary": "The public snapshot of the enrichment queue: how much of the catalog has been checked.",
+        "description": "It is public because it is about the catalog's health, not about anyone: aggregate numbers only, no identifiable listing.\nReturns: { ok, fila{total,concluidos,vencidos,com_falha,processados,estados,motivos} }",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "{ ok, fila{total,concluidos,vencidos,com_falha,processados,estados,motivos} }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoFila"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fila": {
+      "post": {
+        "operationId": "post_api_admin_fila",
+        "summary": "The enrichment robot pushes the snapshot of its own queue here.",
+        "description": "Robot credential only: this does not write to the catalog, so there is no reason to accept admin.\nReturns: { ok }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fila": {
+                    "type": "object",
+                    "description": "The queue snapshot: totals, states and reasons."
+                  }
+                },
+                "required": [
+                  "fila"
+                ]
+              },
+              "example": {
+                "fila": {
+                  "total": 20182,
+                  "concluidos": 11675
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body without `fila`."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/admin/repos": {
+      "post": {
+        "operationId": "post_api_admin_repos",
+        "summary": "The enricher writes here what it found out about a repository: stars, forks, state.",
+        "description": "Accepts the enricher's credential OR the admin's — the robot has its own, with less privilege, and the admin gets in to operate by hand without depending on the robot. The Worker collects nothing: it only stores what was already checked outside it.\nReturns: { ok }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "repos": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "One item per checked repository, with stars, forks, PRs, `pushed_at` and state."
+                  }
+                },
+                "required": [
+                  "repos"
+                ]
+              },
+              "example": {
+                "repos": [
+                  {
+                    "url": "https://github.com/x/y",
+                    "stars": 120,
+                    "repo_estado": "ativo"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body without `repos` or malformed item."
+          },
+          "401": {
+            "description": "Neither the enricher's nor the admin's credential."
+          }
+        }
+      }
+    },
+    "/api/admin/listings": {
+      "get": {
+        "operationId": "get_api_admin_listings",
+        "summary": "The moderation queue. Without a filter, brings what is pending.",
+        "description": "Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session.\nReturns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "pending",
+              "enum": [
+                "pending",
+                "live",
+                "hidden",
+                "blocked"
+              ]
+            },
+            "description": "Which state to list."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Anuncio"
+                      },
+                      "description": "The listings in that state."
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/admin/listings/{id}": {
+      "post": {
+        "operationId": "post_api_admin_listings_by_id",
+        "summary": "Decides the fate of a listing in the queue: approve, hide or block.",
+        "description": "Returns: { ok, status }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "description": "What to do with the listing."
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "example": {
+                "action": "approve"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok, status }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Always `true`."
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "The state the listing ended up in."
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`action` outside the list."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          },
+          "404": {
+            "description": "The resource does not exist (or is not yours — the API does not tell the two apart on purpose)."
+          }
+        }
+      }
+    },
+    "/api/admin/carga": {
+      "get": {
+        "operationId": "get_api_admin_carga",
+        "summary": "State of the catalog's load sources: last batch, count and failures.",
+        "description": "Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session.\nReturns: { fontes, falhas, runs }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fonte",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Restricts to one source, e.g. `official_mcp`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ fontes, falhas, runs }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Carga"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_admin_carga",
+        "summary": "Triggers a load batch or marks a failure alert as seen.",
+        "description": "Returns: { ok }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "description": "What to do with the source."
+                  },
+                  "fonte": {
+                    "type": "string",
+                    "description": "Which source to load or mark, e.g. `official_mcp`."
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "example": {
+                "action": "run",
+                "fonte": "official_mcp"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{ ok }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`action` outside the list or unknown source."
+          },
+          "401": {
+            "description": "No credential, or an invalid one. See this endpoint's auth."
+          }
+        }
+      }
+    },
+    "/api/credito": {
+      "post": {
+        "operationId": "post_api_credito",
+        "summary": "Top up prepaid credit: pay once with x402 and get the token that debits on any API of the house.",
+        "description": "Returns: { token, saldo_usd, guarde, usar, saldo_em }",
+        "security": [],
+        "parameters": [
+          {
+            "name": "usd",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Package: 1, 5, 10 ou 25 dollars."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ token, saldo_usd, guarde, usar, saldo_em }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Bearer token for the balance (`cred_…`). Shown ONCE — it cannot be recovered."
+                    },
+                    "saldo_usd": {
+                      "type": "string",
+                      "description": "Credited balance."
+                    },
+                    "guarde": {
+                      "type": "string",
+                      "description": "Warning that the token is the bearer of the credit."
+                    },
+                    "usar": {
+                      "type": "string",
+                      "description": "How to present the token on paid routes."
+                    },
+                    "saldo_em": {
+                      "type": "string",
+                      "description": "Where to check balance and statement."
+                    }
+                  },
+                  "required": [
+                    "token",
+                    "saldo_usd",
+                    "guarde",
+                    "usar",
+                    "saldo_em"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Package outside the list (1, 5, 10 ou 25)."
+          },
+          "402": {
+            "description": "Unpaid — the body carries the x402 `accepts[]`."
+          }
+        }
+      },
+      "get": {
+        "operationId": "get_api_credito",
+        "summary": "Credit balance and statement — the latest movements, without returning the token.",
+        "description": "Returns: { saldo_micros, saldo_usd, criado_em, movimentos }",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ saldo_micros, saldo_usd, criado_em, movimentos }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "saldo_micros": {
+                      "type": "integer",
+                      "description": "Balance in micro-dollars (1e-6 USD)."
+                    },
+                    "saldo_usd": {
+                      "type": "string",
+                      "description": "Formatted balance."
+                    },
+                    "criado_em": {
+                      "type": "string",
+                      "description": "When the credit was opened."
+                    },
+                    "movimentos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      },
+                      "description": "Recent credits and debits, with product and resource."
+                    }
+                  },
+                  "required": [
+                    "saldo_micros",
+                    "saldo_usd",
+                    "criado_em",
+                    "movimentos"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, or unknown token."
+          }
+        }
+      }
+    }
+  }
+}

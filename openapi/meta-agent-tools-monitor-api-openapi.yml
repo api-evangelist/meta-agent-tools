@@ -1,0 +1,1718 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Monitor API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Monitor
+paths:
+  /api/monitor/projetos:
+    get:
+      operationId: get_api_monitor_projetos
+      summary: List your private agent projects and their human labels
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Basic accounts can create three projects. An active Team or Business pass permits ten, with three active installations per project. The response includes current limits and their expiry. After the pass ends, existing projects remain readable and exportable. Archived references and decisions are read only. New projects and installation credentials return to basic capacity. Separate single-slot purchases do not combine into this benefit. A guest or a wide API key cannot read projects.
+
+        Returns: { projetos, limites }'
+      security:
+      - globalAccount: []
+      responses:
+        '200':
+          description: '{ projetos, limites }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projetos:
+                    type: array
+                    items:
+                      type: object
+                    description: 'Owned projects: id, nome, criado_em (Unix seconds) and apagando (pending erasure).'
+                  limites:
+                    type: object
+                    description: 'Current capacity: projetos (3 or 10), instalacoes (3), expira_em (Unix seconds or null).'
+                required:
+                - projetos
+                - limites
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+    post:
+      operationId: post_api_monitor_projetos
+      summary: Create a private project with a retry ID and a short label
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Use the same ID on retry. A replay keeps the original name and performs no new domain write. Labels must not contain local paths, control characters or secrets.
+
+        Returns: { id }'
+      security:
+      - globalAccount: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: 32 lower-case hexadecimal characters, generated once per creation attempt.
+                nome:
+                  type: string
+                  description: A short human label, from 1 to 80 characters. No file path or secret.
+              required:
+              - id
+      responses:
+        '200':
+          description: '{ id }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The created or already owned project ID.
+                required:
+                - id
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/instalacoes:
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_instalacoes
+      summary: Issue one installation credential for this private project
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Requires authentication within five minutes and exact empty JSON. The secret is returned once; store its download privately with mode 0600. At most three active installations per project. If the account exceeds its current project capacity, renew the pass or delete excess projects before issuance. A new token expires within 30 days or at the active pass end, whichever comes first. It cannot approve, buy, create a project or issue another credential.
+
+        Returns: { esquema, projeto, instalacao, token, expira_em }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ esquema, projeto, instalacao, token, expira_em }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: 'Credential contract version: credencial-1.'
+                  projeto:
+                    type: string
+                    description: The credential's single private project.
+                  instalacao:
+                    type: string
+                    description: The credential's single installation ID.
+                  token:
+                    type: string
+                    description: Private mmi_ bearer secret, returned only by this issuance response.
+                  expira_em:
+                    type: integer
+                    description: Expiry timestamp in Unix seconds.
+                required:
+                - esquema
+                - projeto
+                - instalacao
+                - token
+                - expira_em
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/inventario:
+    get:
+      operationId: get_api_monitor_projetos_by_projeto_inventario
+      summary: Read the received inventory for your active installations
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Installation metadata and the preserved normalized reference. Null inventory means no reference has arrived. A partial scan does not remove prior items. Receiving metadata does not approve a tool or prove execution. With historico=1, return at most three current-epoch references: active installations first, then the most recent archived installations. Archived entries have ativa=false and are read only. This option does not authorize sends, links, approvals or signed policies. References become eligible for cleanup 45 days after credential expiry.
+
+        Returns: { esquema, projeto, instalacoes }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      - name: historico
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Optional. Use exactly 1 to include archived references.
+      responses:
+        '200':
+          description: '{ esquema, projeto, instalacoes }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: 'Received inventory state contract: estado-remoto-1.'
+                  projeto:
+                    type: string
+                    description: The owned private project.
+                  instalacoes:
+                    type: array
+                    items:
+                      type: object
+                    description: 'At most three current-epoch installations: id, expira_em, confirmado_em and inventario. historico=1 also includes ativa. No secret.'
+                required:
+                - esquema
+                - projeto
+                - instalacoes
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/vigias:
+    get:
+      operationId: get_api_monitor_projetos_by_projeto_vigias
+      summary: Read explicit inventory links and your active catalog watches
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. At most three current-epoch installations, 500 links per installation and 1,000 watches. Only the signed-in owner can read these links. A watch ID or inventory name does not prove that the tools match. An expired watch leaves its link inactive.
+
+        Returns: { esquema, projeto, alvos, instalacoes }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      responses:
+        '200':
+          description: '{ esquema, projeto, alvos, instalacoes }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: 'Link state contract: vigias-inventario-1.'
+                  projeto:
+                    type: string
+                    description: The owned private project.
+                  alvos:
+                    type: array
+                    items:
+                      type: object
+                    description: 'Active owned catalog watches: id and valido_ate (expiry in Unix seconds). No private account information.'
+                  instalacoes:
+                    type: array
+                    items:
+                      type: object
+                    description: 'Active installations: id and vinculos. Each link has item, alvo and ativa. No credential.'
+                required:
+                - esquema
+                - projeto
+                - alvos
+                - instalacoes
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_vigias
+      summary: Link one received inventory item to an existing watch, or remove its link
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Requires the human account cookie and CSRF. Installation tokens and wide API keys cannot select watches. The item must be present in this active installation. The watch must already be active and owned by the account. Set alvo to null to remove a link, including after item removal. An exact retry writes nothing. Changed links share the global 512 registrations per day. This creates no watch, charge or approval.
+
+        Returns: { vinculado }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instalacao:
+                  type: string
+                  description: 'Owned installation ID: 32 lower-case hexadecimal characters.'
+                item:
+                  type: string
+                  description: 'Received inventory item ID: 64 lower-case hexadecimal characters.'
+                alvo:
+                  type:
+                  - string
+                  - 'null'
+                  description: Existing watch ID, or null to remove the link.
+              required:
+              - instalacao
+              - item
+              - alvo
+      responses:
+        '200':
+          description: '{ vinculado }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vinculado:
+                    type: boolean
+                    description: True when linked; false when the link is absent.
+                required:
+                - vinculado
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: Inventory is absent, the selected watch is inactive or the link limit is reached.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/eventos:
+    get:
+      operationId: get_api_monitor_projetos_by_projeto_eventos
+      summary: Read committed inventory changes and native actions after a private project…
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Use the account cookie or, when configured, an mmq_ bearer reader for this project. Installation tokens cannot read the project cursor. Do not mix the reader with cookies or X-API-Key. Keyset pagination, up to five batches and 4 MiB per response. Store the returned cursor; the next page retains any batch omitted by the byte limit. Zero starts at available history. Future cursors fail. Expired history returns 410 with cursor_inicial; it is not an empty unchanged result. Events become eligible for deletion after 45 days. Reread the same page to check current notice state without creating another event or send.
+
+        Returns: { esquema, projeto, itens[{esquema,numero,instalacao,lote,sequencia,quando,cobertura,cobertura_alertas?,mudancas,acoes?,vigias?,aviso}], cursor, anterior_expirado, avisos_ativos }'
+      security:
+      - globalAccount: []
+      - monitorReader: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      - name: desde
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Last confirmed project cursor. Start with zero.
+      - name: limite
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: Maximum batches per response, from 1 to 5.
+      responses:
+        '200':
+          description: '{ esquema, projeto, itens[{esquema,numero,instalacao,lote,sequencia,quando,cobertura,cobertura_alertas?,mudancas,acoes?,vigias?,aviso}], cursor, anterior_expirado, avisos_ativos }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: 'Cursor response contract: eventos-inventario-1.'
+                  projeto:
+                    type: string
+                    description: The owned private project.
+                  itens:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EventoMonitor'
+                    description: Committed inventory batches. evento-inventario-2 also contains up to 64 native metadata actions. Attempts, observed outcomes and monitor failures remain distinct. Notice state is current read metadata, not part of the committed event or an approval. Provider acceptance does not prove inbox delivery.
+                  cursor:
+                    type: integer
+                    description: Cursor to store after consuming this response. An empty page marks the current end.
+                  anterior_expirado:
+                    type: boolean
+                    description: True when starting at zero omitted already expired history. Report the coverage gap.
+                  avisos_ativos:
+                    type: boolean
+                    description: True when the durable notice queue is configured. False means notice state is unavailable. It does not prove that account mail is enabled.
+                required:
+                - esquema
+                - projeto
+                - itens
+                - cursor
+                - anterior_expirado
+                - avisos_ativos
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '410':
+          description: History expired. Read cursor_inicial and report the coverage gap.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/instalacoes/{instalacao}/revogar:
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_instalacoes_by_instalacao_revogar
+      summary: Revoke one installation credential without changing local files
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. A repeated revocation is idempotent. New sends with this credential fail. This does not stop or uninstall the local agent, erase local state or reset the project''s cursor.
+
+        Returns: { revogada }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      - name: instalacao
+        in: path
+        required: true
+        schema:
+          type: string
+        description: An installation ID inside this owned project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ revogada }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revogada:
+                    type: boolean
+                    description: True once the credential is revoked.
+                required:
+                - revogada
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/excluir:
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_excluir
+      summary: Delete an owned project and its private monitor data
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Requires authentication within five minutes, CSRF and exact empty JSON. Stop all project credentials immediately. Remove at most 64 events and 64 installations per call. Pending erasure resumes hourly, including after account deactivation. Local files, legacy watches and purchased credits remain. Installation tokens cannot erase a project.
+
+        Returns: { excluido, pendente, eventos, instalacoes, acoes }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ excluido, pendente, eventos, instalacoes, acoes }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  excluido:
+                    type: boolean
+                    description: True when the project and all its private records are gone.
+                  pendente:
+                    type: boolean
+                    description: True while bounded erasure must continue. New sends remain disabled.
+                  eventos:
+                    type: integer
+                    description: Events removed in this batch, at most 64.
+                  instalacoes:
+                    type: integer
+                    description: Installations removed in this batch, at most 64.
+                  acoes:
+                    type: integer
+                    description: Native action IDs removed, at most 64. Optional.
+                required:
+                - excluido
+                - pendente
+                - eventos
+                - instalacoes
+                - acoes
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/instalacao:
+    get:
+      operationId: get_api_monitor_instalacao
+      summary: Check the narrow credential and its confirmed remote reference
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. The fixed client authority is https://api.agentalog.com. This route returns no inventory, owner information or secret. Account epoch, revocation and expiry are checked on every call. A read does not update presence.
+
+        Returns: { esquema, projeto, instalacao, sequencia, lote, expira_em }'
+      security:
+      - monitorInstallation: []
+      responses:
+        '200':
+          description: '{ esquema, projeto, instalacao, sequencia, lote, expira_em }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: 'Reference contract: instalacao-remota-1.'
+                  projeto:
+                    type: string
+                    description: The credential's single project.
+                  instalacao:
+                    type: string
+                    description: The credential's installation.
+                  sequencia:
+                    type: integer
+                    description: Last committed installation sequence, zero before the first batch.
+                  lote:
+                    type: string
+                    description: Last committed batch ID, null before the first batch.
+                    nullable: true
+                  expira_em:
+                    type: integer
+                    description: Credential expiry timestamp in Unix seconds.
+                required:
+                - esquema
+                - projeto
+                - instalacao
+                - sequencia
+                - lote
+                - expira_em
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/inventario:
+    post:
+      operationId: post_api_monitor_inventario
+      summary: Commit one bounded private inventory batch and return its receipt
+      description: 'Private and no-store. No catalog quota, paid read, public cache or CORS grant. Send only a persisted lote-1 or lote-2 body from the client outbox. lote-1 has no actions; lote-2 requires 1 to 64 distinct actions and the optional action receiver. The server checks the sequence and preceding ID, preserves incomplete sources and acknowledges after commit. Exact replays return the same receipt without an extra event or budget debit. Native IDs are deduplicated across batches. A changed action under the same ID returns 409. New actions share the global 512 registrations per day. Extra fields, raw URLs, local paths and raw arguments fail. Global limit: 256 batches and 32 MiB logical bytes per day. Per installation: 20 batches per day and 600 before expiry.
+
+        Returns: { id, sequencia, numero }'
+      security:
+      - monitorInstallation: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                esquema:
+                  type: string
+                  description: Persisted batch version. lote-2 requires the optional native action receiver.
+                  enum:
+                  - lote-1
+                  - lote-2
+                id:
+                  type: string
+                  description: Persisted 64-character batch ID. Keep it unchanged on retry.
+                sequencia:
+                  type: integer
+                  description: Next positive installation sequence, in order.
+                anterior:
+                  type:
+                  - string
+                  - 'null'
+                  description: Previous persisted batch ID, null for the first batch.
+                inventario:
+                  type: object
+                  description: 'Normalized inventario-1 from the client: agente, itens and cobertura. Item types: mcp, skill, plugin, dependencia or configuracao. Configuration contains only its hash, fixed categories and selected destination domains. Maximum 500 items and 1 MiB.'
+                acoes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/AcaoMonitor'
+                  description: Required only for lote-2; forbidden in lote-1. From 1 to 64 distinct native metadata events. No prompts, transcripts, raw arguments, local paths or output text.
+              required:
+              - esquema
+              - id
+              - sequencia
+              - anterior
+              - inventario
+      responses:
+        '200':
+          description: '{ id, sequencia, numero }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Exactly the submitted batch ID.
+                  sequencia:
+                    type: integer
+                    description: Exactly the submitted installation sequence.
+                  numero:
+                    type: integer
+                    description: Committed project cursor assigned under its transaction lock.
+                required:
+                - id
+                - sequencia
+                - numero
+        '400':
+          description: Invalid field, cursor or bounded request body.
+        '401':
+          description: A valid account session or installation credential is required.
+        '403':
+          description: Origin or CSRF proof is invalid for a human write.
+        '404':
+          description: The project or installation does not belong to this account.
+        '409':
+          description: The project, installation or sequence limit prevents the operation.
+        '429':
+          description: The daily budget is exhausted. Preserve pending local batches.
+        '503':
+          description: Monitoring is unavailable. Preserve the previous state and retry.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/consultas:
+    get:
+      operationId: get_api_monitor_projetos_by_projeto_consultas
+      summary: List your project's event readers without their secrets
+      description: 'Private, no-store and no CORS grant. The optional project event reader must be configured. Installation tokens and wide API keys cannot manage readers. At most 64 records. No last-used tracking or write on read.
+
+        Returns: { consultas }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      responses:
+        '200':
+          description: '{ consultas }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consultas:
+                    type: array
+                    items:
+                      type: object
+                    description: Reader id, criado_em, expira_em (Unix seconds) and ativa. No token or digest.
+                required:
+                - consultas
+        '400':
+          description: Unknown field or invalid bounded request.
+        '401':
+          description: Sign in with the existing account. Issuance and revocation require authentication within five minutes.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The project or reader does not belong to this account.
+        '409':
+          description: Three active or 64 retained readers already exist in this project.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: The optional reader or current account authorization is unavailable.
+      tags:
+      - Monitor
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_consultas
+      summary: Issue one credential to read this project's event cursor
+      description: 'Private, no-store and no CORS grant. The optional project event reader must be configured. Installation tokens and wide API keys cannot manage readers. Requires recent authentication, CSRF and exact empty JSON. Return the secret once. Store it privately with mode 0600. At most three active readers per project. The mmq_ credential expires after 30 days and only permits GET /api/monitor/projetos/:projeto/eventos. It cannot ingest, approve, buy or issue credentials. A timeout can leave an issued reader without its secret; list and revoke it before another issuance.
+
+        Returns: { esquema, consulta, projeto, token, expira_em }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ esquema, consulta, projeto, token, expira_em }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: 'Credential contract: consulta-inventario-1.'
+                  consulta:
+                    type: string
+                    description: Reader ID, 32 lower-case hexadecimal characters.
+                  projeto:
+                    type: string
+                    description: The credential's single private project.
+                  token:
+                    type: string
+                    description: Private mmq_ bearer secret. Returned only on issuance.
+                  expira_em:
+                    type: integer
+                    description: Credential expiry timestamp in Unix seconds.
+                required:
+                - esquema
+                - consulta
+                - projeto
+                - token
+                - expira_em
+        '400':
+          description: Unknown field or invalid bounded request.
+        '401':
+          description: Sign in with the existing account. Issuance and revocation require authentication within five minutes.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The project or reader does not belong to this account.
+        '409':
+          description: Three active or 64 retained readers already exist in this project.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: The optional reader or current account authorization is unavailable.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/consultas/{consulta}/revogar:
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_consultas_by_consulta_revogar
+      summary: Revoke one project event reader
+      description: 'Private, no-store and no CORS grant. The optional project event reader must be configured. Installation tokens and wide API keys cannot manage readers. Requires recent authentication, CSRF and exact empty JSON. Repeated revocation does not write. An already expired or invalidated reader remains inactive without another write. This preserves inventory, events, local files and purchased rights.
+
+        Returns: { revogada }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      - name: consulta
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Reader ID inside this owned project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ revogada }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revogada:
+                    type: boolean
+                    description: True when this credential can no longer read events.
+                required:
+                - revogada
+        '400':
+          description: Unknown field or invalid bounded request.
+        '401':
+          description: Sign in with the existing account. Issuance and revocation require authentication within five minutes.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The project or reader does not belong to this account.
+        '409':
+          description: Three active or 64 retained readers already exist in this project.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: The optional reader or current account authorization is unavailable.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/webhooks:
+    get:
+      operationId: get_api_monitor_projetos_by_projeto_webhooks
+      summary: Read your project's webhook status and recent delivery results
+      description: 'Private, no-store and no CORS grant. Requires the configured optional webhook service. Only the human account owner can manage destinations. Installation tokens and API keys are refused. At most 16 destination records and ten delivery records. Returns the domain without the URL path or signing key. Reads perform no write.
+
+        Returns: { esquema, destinos, envios }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      responses:
+        '200':
+          description: '{ esquema, destinos, envios }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: webhooks-inventario-1.
+                  destinos:
+                    type: array
+                    items:
+                      type: object
+                    description: Scoped ID, domain, active state and Unix creation, expiry and revocation times.
+                  envios:
+                    type: array
+                    items:
+                      type: object
+                    description: Scoped delivery and webhook IDs, event number or null for the test, state, attempts, Unix times and optional HTTP status. No remote response body.
+                required:
+                - esquema
+                - destinos
+                - envios
+        '400':
+          description: Invalid field, request ID or destination. Use public HTTPS on port 443 without a query or fragment.
+        '401':
+          description: Sign in with the existing account. Creation and revocation require authentication within five minutes.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The project or webhook does not belong to this account.
+        '409':
+          description: An active destination exists, 16 retained destinations exist, or this request ID has another destination.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: The optional webhook or current account authorization is unavailable.
+      tags:
+      - Monitor
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_webhooks
+      summary: Create one signed webhook and download its private signing key
+      description: 'Private, no-store and no CORS grant. Requires the configured optional webhook service. Only the human account owner can manage destinations. Installation tokens and API keys are refused. Requires recent authentication and CSRF. Generate and retain one random request ID. Retry an uncertain request only with the same ID and exact URL; this returns the same key without another test or registration. One active destination per project, valid for 30 days. Creation queues a separate signed test. Changed inventory, activity that needs attention and changed incomplete coverage use the same committed event as the cursor. The initial reference and routine approved actions do not notify. Delivery uses Standard Webhooks headers webhook-id, webhook-timestamp and webhook-signature. Verify the signature and timestamp before use, then deduplicate webhook-id before any effect. Lost receipts can repeat a delivery. At most six attempts share the global 512 daily attempts with email. Public HTTPS only; no private network or redirect. Recover missing events through the cursor.
+
+        Returns: { esquema, projeto, webhook, segredo, expira_em }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: 'Random request ID: 32 lower-case hexadecimal characters. Preserve it for an explicit retry.'
+                url:
+                  type: string
+                  description: Public HTTPS destination, at most 512 characters. No credentials, IP address, query, fragment or nonstandard port.
+              required:
+              - id
+              - url
+      responses:
+        '200':
+          description: '{ esquema, projeto, webhook, segredo, expira_em }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: webhook-credencial-1.
+                  projeto:
+                    type: string
+                    description: The single private project.
+                  webhook:
+                    type: string
+                    description: The destination ID.
+                  segredo:
+                    type: string
+                    description: Private whsec_ signing key. Store outside the repository and logs. Only creation or its explicit identical retry returns it.
+                  expira_em:
+                    type: integer
+                    description: Expiry timestamp in Unix seconds.
+                required:
+                - esquema
+                - projeto
+                - webhook
+                - segredo
+                - expira_em
+        '400':
+          description: Invalid field, request ID or destination. Use public HTTPS on port 443 without a query or fragment.
+        '401':
+          description: Sign in with the existing account. Creation and revocation require authentication within five minutes.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The project or webhook does not belong to this account.
+        '409':
+          description: An active destination exists, 16 retained destinations exist, or this request ID has another destination.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: The optional webhook or current account authorization is unavailable.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/webhooks/{webhook}/revogar:
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_webhooks_by_webhook_revogar
+      summary: Stop future sends to one project webhook
+      description: 'Private, no-store and no CORS grant. Requires the configured optional webhook service. Only the human account owner can manage destinations. Installation tokens and API keys are refused. Requires recent authentication, CSRF and exact empty JSON. Revocation prevents a reserved delivery from starting. A request already in flight can still arrive. Repeated revocation performs no write. Inventory, email, event readers and purchased rights remain available.
+
+        Returns: { revogado }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Private project ID owned by the signed-in account.
+      - name: webhook
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Webhook ID in this owned project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ revogado }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revogado:
+                    type: boolean
+                    description: True when this destination cannot start another delivery.
+                required:
+                - revogado
+        '400':
+          description: Invalid field, request ID or destination. Use public HTTPS on port 443 without a query or fragment.
+        '401':
+          description: Sign in with the existing account. Creation and revocation require authentication within five minutes.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The project or webhook does not belong to this account.
+        '409':
+          description: An active destination exists, 16 retained destinations exist, or this request ID has another destination.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: The optional webhook or current account authorization is unavailable.
+      tags:
+      - Monitor
+  /api/monitor/avisos/reivindicar:
+    post:
+      operationId: post_api_monitor_avisos_reivindicar
+      summary: Reserve at most one committed notice for the existing product mail service
+      description: 'Private and no-store. Set ORIGIN to the fixed service authority https://api.agentalog.com. Dedicated service only; no customer or MCP tool authority. Exact empty JSON and no query. Reads the indexed pending range, then revalidates account epoch, project and installation. MAT covers changes after the initial reference and native observations that need attention, including unlinked items. Approved routine activity stays in the private cursor without mail. Active human-selected watch links add catalog context; they are optional. Empty polling writes nothing. Reservation lasts two minutes. Reply contains bounded event metadata, owner ID and reservation proof, never email or installation credentials. No send occurs here.
+
+        Returns: { aviso }'
+      security:
+      - monitorNotices: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: '{ aviso }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aviso:
+                    type: object
+                    description: Null when no eligible notice exists; otherwise produto, projeto, numero, lease, dono, nome and evento. Maximum 4 MiB.
+                    nullable: true
+                required:
+                - aviso
+        '400':
+          description: Invalid bounded JSON, receipt, result or query.
+        '401':
+          description: The dedicated product notice credential is absent or invalid.
+        '405':
+          description: Only POST is permitted.
+        '409':
+          description: The reservation expired or the project or installation is no longer active.
+        '413':
+          description: The request body exceeds 4 KiB.
+        '415':
+          description: Content-Type must be application/json.
+        '429':
+          description: The shared daily reservation or delivery-attempt budget is exhausted. No send is authorized.
+        '503':
+          description: Notice delivery is unavailable or another service operation is active.
+      tags:
+      - Monitor
+  /api/monitor/avisos/iniciar:
+    post:
+      operationId: post_api_monitor_avisos_iniciar
+      summary: Revalidate the reservation before one mail attempt
+      description: 'Private and no-store. Account epoch, project, installation and recorded notice evidence must remain valid. Records send intent and reserves one of 512 shared delivery attempts per UTC day in the same transaction before authorizing mail. Retries consume this same budget. Exhaustion preserves preparation and returns 429 without authorizing a send. Missing or invalid budget returns 503. Returns only catalog links still active from the committed event; the list can be empty for an unlinked change or native observation. It does not send mail or grant tool approval. After two minutes, interrupted preparation can be recovered and send intent without a receipt is eligible for uncertain recovery. Hourly maintenance performs bounded recovery. Uncertain sends are not automatically resent.
+
+        Returns: { autorizado, vigias }'
+      security:
+      - monitorNotices: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projeto:
+                  type: string
+                  description: 'Reserved private project ID: 32 hexadecimal characters.'
+                numero:
+                  type: integer
+                  description: Reserved positive committed event number.
+                lease:
+                  type: string
+                  description: 'Private reservation proof: 64 hexadecimal characters.'
+              required:
+              - projeto
+              - numero
+              - lease
+      responses:
+        '200':
+          description: '{ autorizado, vigias }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  autorizado:
+                    type: boolean
+                    description: True only after the send intent is durably recorded.
+                  vigias:
+                    type: array
+                    items:
+                      type: object
+                    description: Zero to 500 active item/alvo pairs; a subset of the committed event links.
+                required:
+                - autorizado
+                - vigias
+        '400':
+          description: Invalid bounded JSON, receipt, result or query.
+        '401':
+          description: The dedicated product notice credential is absent or invalid.
+        '405':
+          description: Only POST is permitted.
+        '409':
+          description: The reservation expired or the project or installation is no longer active.
+        '413':
+          description: The request body exceeds 4 KiB.
+        '415':
+          description: Content-Type must be application/json.
+        '429':
+          description: The shared daily reservation or delivery-attempt budget is exhausted. No send is authorized.
+        '503':
+          description: Notice delivery is unavailable or another service operation is active.
+      tags:
+      - Monitor
+  /api/monitor/avisos/finalizar:
+    post:
+      operationId: post_api_monitor_avisos_finalizar
+      summary: Confirm the result of the single reserved mail attempt
+      description: 'Private and no-store. Accept enviado, adiado, rejeitado or incerto. enviado means provider acceptance, not inbox delivery. adiado is valid only when no send occurred: retry after one hour, with at most six reservations. rejeitado discards the notice. incerto prevents automatic resend. A late matching receipt can confirm an uncertain send. Exact confirmation replay does not write or extend a deadline.
+
+        Returns: { estado }'
+      security:
+      - monitorNotices: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projeto:
+                  type: string
+                  description: 'Reserved private project ID: 32 hexadecimal characters.'
+                numero:
+                  type: integer
+                  description: Reserved positive committed event number.
+                lease:
+                  type: string
+                  description: 'Private reservation proof: 64 hexadecimal characters.'
+                resultado:
+                  type: string
+                  description: Observed mail result. Never infer success after a timeout.
+                  enum:
+                  - enviado
+                  - adiado
+                  - rejeitado
+                  - incerto
+              required:
+              - projeto
+              - numero
+              - lease
+              - resultado
+      responses:
+        '200':
+          description: '{ estado }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estado:
+                    type: string
+                    description: Durably confirmed current notice state.
+                    enum:
+                    - enviado
+                    - pendente
+                    - descartado
+                    - incerto
+                required:
+                - estado
+        '400':
+          description: Invalid bounded JSON, receipt, result or query.
+        '401':
+          description: The dedicated product notice credential is absent or invalid.
+        '405':
+          description: Only POST is permitted.
+        '409':
+          description: The reservation expired or the project or installation is no longer active.
+        '413':
+          description: The request body exceeds 4 KiB.
+        '415':
+          description: Content-Type must be application/json.
+        '429':
+          description: The shared daily reservation or delivery-attempt budget is exhausted. No send is authorized.
+        '503':
+          description: Notice delivery is unavailable or another service operation is active.
+      tags:
+      - Monitor
+  /api/monitor/projetos/{projeto}/instalacoes/{instalacao}/revisoes:
+    get:
+      operationId: get_api_monitor_projetos_by_projeto_instalacoes_by_instalacao_revisoes
+      summary: Compare observed candidates with your reviewed reference and read decision…
+      description: 'Private and no-store. Requires the human account cookie. Expired or revoked current-epoch installations remain readable. This read does not authorize a new decision or signed policy. One request reads at most 500 current candidates and 500 reviewed references. Each candidate includes the server''s fingerprint, comparison state and changed fields. Incomplete coverage cannot grant approval. No installation secret or local path is returned. Read at most five audit receipts after the cursor. Future cursors fail. This reads no public catalog and writes nothing. Available only when the optional review service is configured.
+
+        Returns: { esquema, instalacao, sequencia, versao, candidatos, revisoes, historico, cursor, fim }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 'Private owned project ID: 32 lower-case hexadecimal characters.'
+      - name: instalacao
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 'Current-epoch installation in this project: 32 hexadecimal characters. A decision requires an active credential.'
+      - name: desde
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: Last consumed decision number, from 0 to 600.
+      - name: limite
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 5
+        description: Maximum audit receipts in this page, from 1 to 5.
+      responses:
+        '200':
+          description: '{ esquema, instalacao, sequencia, versao, candidatos, revisoes, historico, cursor, fim }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: Review state contract.
+                    enum:
+                    - revisoes-inventario-1
+                  instalacao:
+                    type: string
+                    description: The owned installation.
+                  sequencia:
+                    type: integer
+                    description: Current inventory sequence. Send this exact number in a decision.
+                  versao:
+                    type: integer
+                    description: Current review version. Send this exact number in a decision.
+                  candidatos:
+                    type: array
+                    items:
+                      type: object
+                    description: 'At most 500 records: item, candidato, estado and campos. Each item uses inventario-1 metadata, including selected configuration hashes and fixed permission categories. estado is novo, igual, alterado or incompleto. campos identifies changed captured metadata. Use candidato in the human decision; do not recompute it in the browser.'
+                  revisoes:
+                    type: array
+                    items:
+                      type: object
+                    description: At most 500 item/candidato/decisao/responsavel/decidido_em/numero records. Each item uses inventario-1 metadata. An observed upgrade preserves the previous reviewed reference.
+                  historico:
+                    type: array
+                    items:
+                      type: object
+                    description: 'Up to five receipts: id, item, candidato, decisao, quando, numero and responsavel. No request hash or secret.'
+                  cursor:
+                    type: integer
+                    description: Last returned receipt number. Use it as desde for the next page.
+                  fim:
+                    type: boolean
+                    description: True at the current end of the audit.
+                required:
+                - esquema
+                - instalacao
+                - sequencia
+                - versao
+                - candidatos
+                - revisoes
+                - historico
+                - cursor
+                - fim
+        '400':
+          description: Invalid field, bounded JSON or cursor.
+        '401':
+          description: A human cookie is required. Reauthenticate within five minutes before a decision.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The owned active project or installation was not found.
+        '405':
+          description: Only the declared method is permitted.
+        '409':
+          description: The observed candidate, sequence or review version changed; coverage is incomplete; or a cursor is in the future.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: Review is unconfigured or unavailable. No permission is granted.
+      tags:
+      - Monitor
+    post:
+      operationId: post_api_monitor_projetos_by_projeto_instalacoes_by_instalacao_revisoes
+      summary: Approve exact observed content or suspend it with a durable human receipt
+      description: 'Private and no-store. Requires a human cookie authenticated within five minutes, exact Origin and CSRF. Refuses installation bearer credentials and API keys. Recheck candidate fingerprint, inventory sequence and review version under the project lock. Partial coverage cannot grant approval. A suspension can retain a reviewed item after removal. Retry with the same ID and exact body to obtain the original receipt without writes. A changed body under the same ID fails. Limits: 500 references, 600 total decisions per installation, 2 MiB stored state, and the shared 512 registrations per day. No tool runs or is installed by this endpoint. A model result never grants permission.
+
+        Returns: { id, item, candidato, decisao, quando, numero, responsavel }'
+      security:
+      - globalAccount: []
+      parameters:
+      - name: projeto
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 'Private owned project ID: 32 lower-case hexadecimal characters.'
+      - name: instalacao
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 'Current-epoch installation in this project: 32 hexadecimal characters. A decision requires an active credential.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Generate 32 lower-case hexadecimal characters once per human decision. Keep it on retry.
+                item:
+                  type: string
+                  description: 'Received inventory item ID: 64 hexadecimal characters.'
+                candidato:
+                  type: string
+                  description: 64-character SHA-256 fingerprint from @mm/revisao/inventario-candidato. Covers identity, content hash and all captured metadata; it is not the content hash alone.
+                decisao:
+                  type: string
+                  description: Explicit human decision for the selected candidate.
+                  enum:
+                  - aprovar
+                  - suspender
+                versao:
+                  type: integer
+                  description: Review version read for this installation, from 0 to 600.
+                sequencia:
+                  type: integer
+                  description: Positive inventory sequence shown to the reviewer.
+              required:
+              - id
+              - item
+              - candidato
+              - decisao
+              - versao
+              - sequencia
+      responses:
+        '200':
+          description: '{ id, item, candidato, decisao, quando, numero, responsavel }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 'Decision retry ID: 32 lower-case hexadecimal characters.'
+                  item:
+                    type: string
+                    description: 'The reviewed inventory item ID: 64 hexadecimal characters.'
+                  candidato:
+                    type: string
+                    description: Fingerprint of the exact content and captured metadata.
+                  decisao:
+                    type: string
+                    description: The human decision.
+                    enum:
+                    - aprovar
+                    - suspender
+                  quando:
+                    type: integer
+                    description: Decision timestamp in Unix seconds, assigned by the server.
+                  numero:
+                    type: integer
+                    description: The installation's durable review version.
+                  responsavel:
+                    type: string
+                    description: Account identity from the authenticated cookie, never the body.
+                required:
+                - id
+                - item
+                - candidato
+                - decisao
+                - quando
+                - numero
+                - responsavel
+        '400':
+          description: Invalid field, bounded JSON or cursor.
+        '401':
+          description: A human cookie is required. Reauthenticate within five minutes before a decision.
+        '403':
+          description: Origin or CSRF proof is invalid.
+        '404':
+          description: The owned active project or installation was not found.
+        '405':
+          description: Only the declared method is permitted.
+        '409':
+          description: The observed candidate, sequence or review version changed; coverage is incomplete; or a cursor is in the future.
+        '413':
+          description: Body exceeds 4 KiB.
+        '415':
+          description: Content-Type must be application/json.
+        '429':
+          description: The shared daily registration budget is exhausted.
+        '503':
+          description: Review is unconfigured or unavailable. No permission is granted.
+      tags:
+      - Monitor
+  /api/monitor/politica:
+    get:
+      operationId: get_api_monitor_politica
+      summary: Read a signed short-lived policy for this installation only
+      description: 'Private and no-store. Set ORIGIN to https://api.agentalog.com. Exact path, no query and no write. Revalidate credential expiry, revocation and account epoch on each read. Ed25519 signature; at most 500 rules, 1 MiB and 15 minutes, shortened to credential expiry. Client 0.4.0 pins the public key and verifies product/project/installation/epoch through its trusted connection. Reject expired, future, changed, differently scoped or older policies. An already cached policy can remain valid until expiry after an online revocation. policy downloads a signed decision. check recollects the selected configurations and target item before checking their exact candidates. The policy and check commands do not activate tools or install hooks. Optional hooks-install can install project hooks after preview consent. In enforce mode, covered calls require exact reviewed configuration and tool metadata. Removing a reviewed configuration prevents confirmation until that configuration is restored and reviewed. This does not freeze a remote MCP''s code or guarantee universal blocking. Available only when the optional review service is configured.
+
+        Returns: { esquema, politica, assinatura }'
+      security:
+      - monitorInstallation: []
+      responses:
+        '200':
+          description: '{ esquema, politica, assinatura }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esquema:
+                    type: string
+                    description: Signed envelope contract.
+                    enum:
+                    - politica-assinada-1
+                  politica:
+                    type: object
+                    description: 'politica-inventario-1: produto, projeto, instalacao, epoca, versao, emitida_em, expira_em and revisoes. Rules contain exact item metadata, candidate fingerprint, human decision, responsible account, decision timestamp and number.'
+                  assinatura:
+                    type: string
+                    description: 86 base64url characters. Verify with the separately trusted Ed25519 public key; never trust a key supplied by an untrusted envelope.
+                required:
+                - esquema
+                - politica
+                - assinatura
+        '400':
+          description: Unexpected query.
+        '401':
+          description: The installation credential is absent, expired or revoked.
+        '405':
+          description: Only GET is permitted.
+        '503':
+          description: The optional review service is unconfigured or unavailable.
+      tags:
+      - Monitor
+components:
+  schemas:
+    EventoMonitor:
+      type: object
+      properties:
+        esquema:
+          type: string
+          description: Legacy inventory event or inventory event with native actions.
+          enum:
+          - evento-inventario-1
+          - evento-inventario-2
+        numero:
+          type: integer
+          description: Committed project cursor.
+        instalacao:
+          type: string
+          description: 'Installation ID: 32 hexadecimal characters.'
+        lote:
+          type: string
+          description: 'Persisted batch ID: 64 hexadecimal characters.'
+        sequencia:
+          type: integer
+          description: Positive installation sequence.
+        quando:
+          type: integer
+          description: Commit timestamp in Unix seconds.
+        cobertura:
+          type: array
+          items:
+            type: object
+          description: At most 16 inventory source coverage entries.
+        cobertura_alertas:
+          type: array
+          items:
+            type: object
+          description: At most 16 newly incomplete or changed incomplete sources. Repeated unchanged gaps do not trigger another notice.
+        mudancas:
+          type: array
+          items:
+            type: object
+          description: Normalized inventory differences. Declaration is not execution.
+        acoes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcaoMonitor'
+          description: Present only in evento-inventario-2. At most 64 newly admitted actions; cross-batch duplicates are omitted.
+        vigias:
+          type: array
+          items:
+            type: object
+          description: item/alvo links active at commit, when link service is configured.
+        aviso:
+          type: object
+          description: 'Current {estado}: pendente, preparando, enviando, incerto, enviado or descartado. Null without a notice. enviado means provider acceptance, not inbox delivery.'
+          nullable: true
+      required:
+      - esquema
+      - numero
+      - instalacao
+      - lote
+      - sequencia
+      - quando
+      - cobertura
+      - mudancas
+      - aviso
+      description: One committed private batch. Consume the whole batch before advancing its project cursor.
+    AcaoMonitor:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 'Stable event ID: 64 lower-case hexadecimal characters.'
+        sessao:
+          type: string
+          description: 'Hashed native session identity: 64 hexadecimal characters.'
+        chamada:
+          type: string
+          description: Hashed native tool-call ID. Null for an event without a native call ID.
+          nullable: true
+        item:
+          type: string
+          description: Captured inventory item ID. Null when sha is null.
+          nullable: true
+        sha:
+          type: string
+          description: Captured content hash. Null when item is null.
+          nullable: true
+        evento:
+          type: string
+          description: Native event type. Stop delivers batches but creates no activity event.
+          enum:
+          - SessionStart
+          - SessionEnd
+          - ConfigChange
+          - PreToolUse
+          - UserPromptExpansion
+          - PostToolUse
+          - PostToolUseFailure
+        evidencia:
+          type: string
+          description: Must match evento. An attempt does not prove execution.
+          enum:
+          - sessao
+          - configuracao
+          - tentativa
+          - execucao_observada
+          - falha_observada
+        estado:
+          type: string
+          description: Captured monitor state. observado is observation only; falha reports monitor failure.
+          enum:
+          - observado
+          - aprovado
+          - pendente
+          - suspenso
+          - ausente
+          - incompleto
+          - origem_nao_confirmada
+          - falha
+        politica_versao:
+          type: integer
+          description: Non-negative signed policy version, or null when unavailable.
+          nullable: true
+        observado_em:
+          type: integer
+          description: Original positive observation time in Unix seconds.
+      required:
+      - id
+      - sessao
+      - chamada
+      - item
+      - sha
+      - evento
+      - evidencia
+      - estado
+      - politica_versao
+      - observado_em
+      description: A native hook observation. It does not certify safety or prove universal enforcement.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

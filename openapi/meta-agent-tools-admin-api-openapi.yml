@@ -1,13 +1,144 @@
 openapi: 3.2.0
 info:
-  title: Meta Agent Tools Admin API
+  title: Agentalog — Agent Auto Log Admin API
   version: 1.0.0
-  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
 servers:
 - url: https://agentalog.com
 tags:
 - name: Admin
 paths:
+  /api/admin/volatil:
+    post:
+      operationId: post_api_admin_volatil
+      summary: Publishes one group of updated counters
+      description: 'CARGA_TOKEN only. One slice = 1/256 of the ids (by hash), whole; submit only slices whose content changed. Nothing here touches the catalog database — that is the point.
+
+        Returns: { ok, fatia, itens }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fatia:
+                  type: string
+                  description: Two hex digits; every id in `itens` must hash to it.
+                gerado_em:
+                  type: string
+                  description: UTC instant the slice was built.
+                itens:
+                  type: object
+                  description: '`{id: record}`, at most 5000 ids and 1 MB.'
+              required:
+              - fatia
+              - gerado_em
+              - itens
+            example:
+              fatia: 0a
+              gerado_em: '2026-09-08 12:00:00'
+              itens:
+                skl_a:
+                  downloads: 138
+                  version: '1.1'
+      responses:
+        '200':
+          description: '{ ok, fatia, itens }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Stored.
+                  fatia:
+                    type: string
+                    description: The slice stored.
+                  itens:
+                    type: integer
+                    description: Records in it.
+                required:
+                - ok
+                - fatia
+                - itens
+        '400':
+          description: Malformed slice, id outside the slice, or above the ceilings.
+        '401':
+          description: CARGA_TOKEN required.
+        '503':
+          description: Object storage not configured.
+      tags:
+      - Admin
+  /api/admin/sitemap:
+    post:
+      operationId: post_api_admin_sitemap
+      summary: Receives one shard of the listings sitemap (or its manifest) for publication
+      description: 'CARGA_TOKEN only. Submit catalog shards (up to 50,000 listings each, ordered by id) and sends only the shard whose content changed, then the manifest (how many shards, when). The Worker serves `/sitemap-listings.xml` (index) and `/sitemap-listings-N.xml` (shard) from that storage, with cache at the edge; the catalog database is never read for it.
+
+        Returns: { ok, parte?, urls?, manifesto? }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parte:
+                  type: integer
+                  description: Shard number, 1-based (at most 200). Omit when sending the manifest.
+                gerado_em:
+                  type: string
+                  description: UTC instant the shard was built.
+                urls:
+                  type: array
+                  items:
+                    type: object
+                  description: '`{id, lastmod?}` per listing, at most 50,000; `lastmod` is the listing''s `updated_at`.'
+                manifesto:
+                  type: object
+                  description: '`{partes, gerado_em}` — sent once after the shards; replaces the previous manifest.'
+            example:
+              parte: 1
+              gerado_em: '2026-09-13 12:00:00'
+              urls:
+              - id: mcp_x
+                lastmod: '2026-09-10 08:00:00'
+      responses:
+        '200':
+          description: '{ ok, parte?, urls?, manifesto? }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Stored.
+                  parte:
+                    type: integer
+                    description: The shard stored (absent for the manifest).
+                  urls:
+                    type: integer
+                    description: Listings in it (absent for the manifest).
+                  manifesto:
+                    type: object
+                    description: The manifest stored (absent for a shard).
+                required:
+                - ok
+        '400':
+          description: Malformed shard or manifest, invalid id, or above the ceilings.
+        '401':
+          description: CARGA_TOKEN required.
+        '503':
+          description: Object storage not configured.
+      tags:
+      - Admin
   /api/admin/fila:
     post:
       operationId: post_api_admin_fila
@@ -62,16 +193,16 @@ paths:
             schema:
               type: object
               properties:
-                repos:
+                itens:
                   type: array
                   items:
                     type: object
-                  description: One item per checked repository, with stars, forks, PRs, `pushed_at` and state.
+                  description: Up to 500 checked repositories with repo_slug, stars, forks, PRs, pushed_at and state. Optional listing_ids is an array of up to 50 listing IDs (1–160 letters, digits, underscore or hyphen); only matching listings of that repository are updated. An empty array stores only the repository fact. Omit it only for legacy fanout, still subject to the daily budget.
               required:
-              - repos
+              - itens
             example:
-              repos:
-              - url: https://github.com/x/y
+              itens:
+              - repo_slug: x/y
                 stars: 120
                 repo_estado: ativo
       responses:
@@ -82,18 +213,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Ok'
         '400':
-          description: Body without `repos` or malformed item.
+          description: Body without `itens` or malformed item.
         '401':
           description: Neither the enricher's nor the admin's credential.
+        '429':
+          description: Daily publication budget exhausted; retain pending facts.
       tags:
       - Admin
   /api/admin/listings:
     get:
       operationId: get_api_admin_listings
       summary: The moderation queue. Without a filter, brings what is pending
-      description: 'Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session.
+      description: 'Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session. Each item includes the last automatic moderation reason and review time in `moderation`.
 
-        Returns: { items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+        Returns: { items[{seguranca_nivel?,seguranca_estado?,seguranca_api?,moderation?,id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,linguagem,licenca,repo_topics,repo_slug,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api,readme_api?,historico?,readme_fonte?,readme_bytes,readme_sha,readme_em,payload}] }'
       security:
       - bearerAuth: []
       parameters:
@@ -111,7 +244,7 @@ paths:
         description: Which state to list.
       responses:
         '200':
-          description: '{ items[{id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api}] }'
+          description: '{ items[{seguranca_nivel?,seguranca_estado?,seguranca_api?,moderation?,id,kind,category,name,tagline,body,url,status,origin,origin_id,install,source,transporte,ns,versao,oficial_status,repo_host,topico,linguagem,licenca,repo_topics,repo_slug,stars,forks,prs_abertos,pushed_at,repo_estado,likes,comments,visits,created_at,updated_at,mine,api,go,comments_api,readme_api?,historico?,readme_fonte?,readme_bytes,readme_sha,readme_em,payload}] }'
           content:
             application/json:
               schema:
@@ -129,10 +262,12 @@ paths:
       tags:
       - Admin
   /api/admin/listings/{id}:
-    post:
-      operationId: post_api_admin_listings_by_id
-      summary: 'Decides the fate of a listing in the queue: approve, hide or block'
-      description: 'Returns: { ok, status }'
+    get:
+      operationId: get_api_admin_listings_by_id
+      summary: Reads one submitted listing for moderation, even beyond the first queue page
+      description: 'Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session. Includes the full submitted description and URL; it never approves on GET.
+
+        Returns: { seguranca_nivel?, seguranca_estado?, seguranca_api?, moderation?, id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, linguagem, licenca, repo_topics, repo_slug, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api, readme_api?, historico?, readme_fonte?, readme_bytes, readme_sha, readme_em, payload }'
       security:
       - bearerAuth: []
       parameters:
@@ -141,6 +276,37 @@ paths:
         required: true
         schema:
           type: string
+        description: Listing ID, 1–160 letters, digits, underscores or hyphens.
+        example: ID
+      responses:
+        '200':
+          description: '{ seguranca_nivel?, seguranca_estado?, seguranca_api?, moderation?, id, kind, category, name, tagline, body, url, status, origin, origin_id, install, source, transporte, ns, versao, oficial_status, repo_host, topico, linguagem, licenca, repo_topics, repo_slug, stars, forks, prs_abertos, pushed_at, repo_estado, likes, comments, visits, created_at, updated_at, mine, api, go, comments_api, readme_api?, historico?, readme_fonte?, readme_bytes, readme_sha, readme_em, payload }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Anuncio'
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '404':
+          description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+      tags:
+      - Admin
+    post:
+      operationId: post_api_admin_listings_by_id
+      summary: 'Decides the fate of a listing in the queue: approve, hide or block'
+      description: 'A submitter with an account gets one e-mail per decision (the decision, the reason and the page or the receipt); repeating the same state sends nothing. A guest or agent owner has no e-mail and polls `GET /api/listings/:id/status`.
+
+        Returns: { ok, status, reason }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID of the listing to moderate.
+        example: ID
       requestBody:
         required: true
         content:
@@ -151,13 +317,24 @@ paths:
                 action:
                   type: string
                   description: What to do with the listing.
+                  enum:
+                  - approve
+                  - hide
+                  - block
+                reason:
+                  type: string
+                  description: 'Why, for whoever submitted: it comes back in `GET /api/listings/:id/status`. Required for `block`, optional for `hide`, ignored for `approve` (which clears an earlier reason). Up to 300 characters.'
+                fix:
+                  type: object
+                  description: 'Corrections applied together with `approve`, any of `name`, `tagline`, `body`, `category`, with the same validation as a submission. `url` and `kind` are refused: a new URL is what sends a listing back to the queue.'
               required:
               - action
             example:
-              action: approve
+              action: hide
+              reason: The URL has answered 404 since yesterday.
       responses:
         '200':
-          description: '{ ok, status }'
+          description: '{ ok, status, reason }'
           content:
             application/json:
               schema:
@@ -169,15 +346,83 @@ paths:
                   status:
                     type: string
                     description: The state the listing ended up in.
+                  reason:
+                    type: string
+                    description: The reason stored with the decision; empty when none.
                 required:
                 - ok
                 - status
+                - reason
         '400':
-          description: '`action` outside the list.'
+          description: '`action` outside the list; `reason` missing on `block` or above 300 characters; `fix` outside `approve`; `fix_url` (URL or kind inside the fix); or the refused field of the fix (`name`, `tagline`, `category`, `golpe`).'
         '401':
           description: No credential, or an invalid one. See this endpoint's auth.
         '404':
           description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+      tags:
+      - Admin
+    delete:
+      operationId: delete_api_admin_listings_by_id
+      summary: Permanently deletes one community submission and its catalog data
+      description: 'Admin only. A browser session also requires the standard CSRF header. Send the current name and updated_at to confirm the exact record. Imported records are refused. The transaction removes comments, likes, visits, README and security results. Paid watch and billing history remain. No decision e-mail is sent.
+
+        Returns: { ok, deleted }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID of the community submission.
+        example: ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Exact current name.
+                updated_at:
+                  type: string
+                  description: Exact current updated_at.
+              required:
+              - name
+              - updated_at
+            example:
+              name: Test submission
+              updated_at: '2026-10-14T10:00:00.000Z'
+      responses:
+        '200':
+          description: '{ ok, deleted }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Always true.
+                  deleted:
+                    type: string
+                    description: Deleted listing ID.
+                required:
+                - ok
+                - deleted
+        '400':
+          description: Confirmation fields missing.
+        '401':
+          description: No credential, or an invalid one. See this endpoint's auth.
+        '403':
+          description: Invalid CSRF proof.
+        '404':
+          description: The resource does not exist (or is not yours — the API does not tell the two apart on purpose).
+        '409':
+          description: Imported record or record changed since it was read.
       tags:
       - Admin
   /api/admin/carga:
@@ -186,7 +431,7 @@ paths:
       summary: 'State of the catalog''s load sources: last batch, count and failures'
       description: 'Accepts `ADMIN_TOKEN` as Bearer or the `ADMIN_EMAIL` session.
 
-        Returns: { fontes, falhas, runs }'
+        Returns: { fontes, falhas, runs, orcamento }'
       security:
       - bearerAuth: []
       parameters:
@@ -198,7 +443,7 @@ paths:
         description: Restricts to one source, e.g. `official_mcp`.
       responses:
         '200':
-          description: '{ fontes, falhas, runs }'
+          description: '{ fontes, falhas, runs, orcamento }'
           content:
             application/json:
               schema:
@@ -209,8 +454,10 @@ paths:
       - Admin
     post:
       operationId: post_api_admin_carga
-      summary: Triggers a load batch or marks a failure alert as seen
-      description: 'Returns: { ok }'
+      summary: Requests an update or marks a failure alert as seen
+      description: 'run/reset enqueue a request for the next scheduled operation. They do not run synchronously.
+
+        Returns: { ok }'
       security:
       - bearerAuth: []
       requestBody:
@@ -223,6 +470,10 @@ paths:
                 action:
                   type: string
                   description: What to do with the source.
+                  enum:
+                  - run
+                  - visto
+                  - reset
                 fonte:
                   type: string
                   description: Which source to load or mark, e.g. `official_mcp`.
@@ -242,6 +493,661 @@ paths:
           description: '`action` outside the list or unknown source.'
         '401':
           description: No credential, or an invalid one. See this endpoint's auth.
+      tags:
+      - Admin
+  /api/admin/okf/pendentes:
+    get:
+      operationId: get_api_admin_okf_pendentes
+      summary: Reads the queue of OKF bundles submitted through `POST /api/okf/ping`
+      description: 'CARGA_TOKEN only. Up to 50 submissions, oldest first. The edge never fetches a key file or a bundle: submissions require key verification before reading the submitter''s host — otherwise a stranger could make us fetch arbitrary URLs.
+
+        Returns: { pendentes, lote }'
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: '{ pendentes, lote }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pendentes:
+                    type: array
+                    items:
+                      type: object
+                    description: '{bundle_url, host, chave, chave_url} still waiting for key verification.'
+                  lote:
+                    type: integer
+                    description: Batch ceiling; a full page may have more pending items.
+                required:
+                - pendentes
+                - lote
+        '401':
+          description: CARGA_TOKEN required.
+      tags:
+      - Admin
+    post:
+      operationId: post_api_admin_okf_pendentes
+      summary: Records verification of submitted bundles
+      description: 'CARGA_TOKEN only. Changes the QUEUE, never the catalog: an approved bundle reaches the mosaic through the normal catalog difference, because two doors writing listings would be two truths. A network failure is not a verdict — the submission stays pending and comes back next round.
+
+        Returns: { ok, marcados }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resultados:
+                  type: array
+                  items:
+                    type: object
+                  description: '{bundle_url, estado: verificado|recusado, motivo}. At most 50; `motivo` is chave|bundle|okf_version.'
+              required:
+              - resultados
+            example:
+              resultados:
+              - bundle_url: https://example.com/okf/index.md
+                estado: verificado
+      responses:
+        '200':
+          description: '{ ok, marcados }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: The batch was applied.
+                  marcados:
+                    type: integer
+                    description: How many queue rows were touched.
+                required:
+                - ok
+                - marcados
+        '400':
+          description: Missing `resultados`, more than 50, or an unknown state.
+        '401':
+          description: CARGA_TOKEN required.
+      tags:
+      - Admin
+  /api/admin/feeds:
+    post:
+      operationId: post_api_admin_feeds
+      summary: Applies prepared feed-index differences for publication
+      description: 'Requires CARGA_TOKEN. Maximum 100 items and 2 MB. A daily budget slice of its own stops publication with 429 (`alvo: "feeds"`) without holding the catalog back; unconfirmed items remain pending.
+
+        Returns: { ok, aceitos, recusados }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itens:
+                  type: array
+                  items:
+                    type: object
+                  description: Each delta has id, novo, and either valores (changed columns only) or remove:true.
+                contagens:
+                  type: array
+                  items:
+                    type: object
+                  description: Optional `{ chave, n }` list with the count per facet value, computed on the collector.
+              required:
+              - itens
+            example:
+              itens: []
+      responses:
+        '200':
+          description: '{ ok, aceitos, recusados }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: The complete batch was accepted.
+                  aceitos:
+                    type: integer
+                    description: Accepted items, including idempotent retries.
+                  recusados:
+                    type: integer
+                    description: Zero on success; invalid batches fail in full.
+                required:
+                - ok
+                - aceitos
+                - recusados
+        '400':
+          description: Invalid delta or facet count.
+        '401':
+          description: CARGA_TOKEN required.
+        '413':
+          description: More than 100 items or a body over 2 MB.
+        '429':
+          description: Daily feed slice exhausted; retain pending items.
+      tags:
+      - Admin
+  /api/admin/catalogo:
+    post:
+      operationId: post_api_admin_catalogo
+      summary: Applies prepared catalog differences for publication
+      description: 'Requires CARGA_TOKEN. Imported sources only; no SQL, community records or user fields. Maximum 25 items and 2 MB. An atomic daily budget stops publication with 429; retain unconfirmed differences.
+
+        Returns: { ok, aceitos, recusados }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itens:
+                  type: array
+                  items:
+                    type: object
+                  description: Each delta has id, origin, origin_id, novo, valores (changed catalog columns only), optional prepared pacotes and owner for new rows.
+              required:
+              - itens
+            example:
+              itens: []
+      responses:
+        '200':
+          description: '{ ok, aceitos, recusados }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: The complete batch was accepted.
+                  aceitos:
+                    type: integer
+                    description: Accepted items, including idempotent retries.
+                  recusados:
+                    type: integer
+                    description: Zero on success; invalid batches fail in full.
+                required:
+                - ok
+                - aceitos
+                - recusados
+        '400':
+          description: Invalid delta.
+        '401':
+          description: CARGA_TOKEN required.
+        '409':
+          description: Identity differs from destination.
+        '413':
+          description: Batch or body too large.
+        '429':
+          description: Daily publication budget exhausted; `alvo` names the slice that ran out (`catalogo` or `okf`, each with its own cap).
+      tags:
+      - Admin
+  /api/admin/readmes:
+    post:
+      operationId: post_api_admin_readmes
+      summary: Stores documentation for listings without a repository
+      description: 'Requires CARGA_TOKEN. The listing exposes the document with attribution. Unchanged text is not written again. Maximum 20 items and 2 MB.
+
+        Returns: { ok, aceitos, iguais, recusados }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itens:
+                  type: array
+                  items:
+                    type: object
+                  description: '{listing_id, fonte: npm|pypi, readme} — README of 1 to 200,000 characters; no repeated listing_id.'
+              required:
+              - itens
+            example:
+              itens:
+              - listing_id: mcp_x
+                fonte: npm
+                readme: '# X'
+      responses:
+        '200':
+          description: '{ ok, aceitos, iguais, recusados }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: The batch was processed.
+                  aceitos:
+                    type: integer
+                    description: READMEs stored (new or changed).
+                  iguais:
+                    type: integer
+                    description: 'Unchanged READMEs: nothing written.'
+                  recusados:
+                    type: array
+                    items:
+                      type: string
+                    description: listing_ids unknown to the catalog; the rest of the batch is applied.
+                required:
+                - ok
+                - aceitos
+                - iguais
+                - recusados
+        '400':
+          description: Malformed item.
+        '401':
+          description: CARGA_TOKEN required.
+        '413':
+          description: More than 20 items or body over 2 MB.
+        '429':
+          description: Daily publication budget exhausted; retain pending documents.
+        '503':
+          description: 'R2 not configured: nothing indexed.'
+      tags:
+      - Admin
+  /api/admin/fts:
+    post:
+      operationId: post_api_admin_fts
+      summary: Indexes one page of live listings into the full-text search index
+      description: 'Requires CARGA_TOKEN. Pages by rowid: `apos` is the last rowid already indexed, `limite` the page size (≤ 500). Each page reserves 5 write units per listing in the daily catalog budget before writing; 429 means try tomorrow. An empty page marks the index ready (`fts:pronto`) and the search switches from LIKE to the index.
+
+        Returns: { ok, indexados, ultimo, pronto }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                apos:
+                  type: integer
+                  description: Last rowid already indexed; 0 to start.
+                limite:
+                  type: integer
+                  description: Page size, 1–500 (default 500).
+              required:
+              - apos
+            example:
+              apos: 0
+              limite: 500
+      responses:
+        '200':
+          description: '{ ok, indexados, ultimo, pronto }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: The page was processed.
+                  indexados:
+                    type: integer
+                    description: Listings written to the index in this page.
+                  ultimo:
+                    type: integer
+                    description: Last rowid indexed — send it back as `apos`.
+                  pronto:
+                    type: boolean
+                    description: '`true` when there was nothing left: the index covers the catalog.'
+                required:
+                - ok
+                - indexados
+                - ultimo
+                - pronto
+        '400':
+          description: Invalid page.
+        '401':
+          description: CARGA_TOKEN required.
+        '429':
+          description: Daily catalog budget exhausted.
+      tags:
+      - Admin
+  /api/admin/carga/c3:
+    get:
+      operationId: get_api_admin_carga_c3
+      summary: Reads pending operator commands and an indexed community delta
+      description: 'CARGA_TOKEN only. Up to 100 community rows ordered by (updated_at,id), older than one minute. Imported catalog rows are never read. A full page advances to its last row; a short page advances to ate with empty apos.
+
+        Returns: { pedidos, comunidade, ate }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: desde
+        in: query
+        required: true
+        schema:
+          type: string
+        description: UTC cursor, YYYY-MM-DD HH:mm:ss.
+      - name: apos
+        in: query
+        required: false
+        schema:
+          type: string
+        description: ID after the last received row; empty for a new time boundary.
+      responses:
+        '200':
+          description: '{ pedidos, comunidade, ate }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pedidos:
+                    type: array
+                    items:
+                      type: object
+                    description: Commands {fonte,id,acao}; restricted to the operation service.
+                  comunidade:
+                    type: array
+                    items:
+                      type: object
+                    description: Changed {id,source,status,updated_at} records.
+                  ate:
+                    type: string
+                    description: Exclusive UTC upper bound of the feed.
+                required:
+                - pedidos
+                - comunidade
+                - ate
+        '400':
+          description: Invalid cursor.
+        '401':
+          description: CARGA_TOKEN required.
+      tags:
+      - Admin
+    post:
+      operationId: post_api_admin_carga_c3
+      summary: Publishes source status and acknowledges operator commands completed by the…
+      description: 'CARGA_TOKEN only. Up to 12 statuses and acknowledgements. A retry with the same run ID does not rewrite status; an old acknowledgement cannot erase a newer command.
+
+        Returns: { ok, estados, aceites }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estados:
+                  type: array
+                  items:
+                    type: object
+                  description: 'Source run summaries: fonte,id,status,cursor,updated_since,erro,pages,imported,skipped,more,started_at,finished_at.'
+                aceites:
+                  type: array
+                  items:
+                    type: object
+                  description: Completed command {fonte,id} pairs.
+              required:
+              - estados
+              - aceites
+            example:
+              estados: []
+              aceites: []
+      responses:
+        '200':
+          description: '{ ok, estados, aceites }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Accepted.
+                  estados:
+                    type: integer
+                    description: Accepted statuses.
+                  aceites:
+                    type: integer
+                    description: Accepted command acknowledgements.
+                required:
+                - ok
+                - estados
+                - aceites
+        '400':
+          description: Invalid status or acknowledgement.
+        '401':
+          description: CARGA_TOKEN required.
+        '429':
+          description: Daily budget exhausted.
+      tags:
+      - Admin
+  /api/admin/briefings:
+    post:
+      operationId: post_api_admin_briefings
+      summary: 'The Briefings publisher delivers one document: the index or a topic'
+      description: '`BRIEFINGS_TOKEN` only (the publisher''s credential; it opens nothing else). The document is checked against the key it will live under — shape, sizes, addresses — before it is stored. Idempotent.
+
+        Returns: { ok, chave, indice }'
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chave:
+                  type: string
+                  description: '`briefings/v1/indice.json` or `briefings/v1/topicos/<slug>.json`.'
+                doc:
+                  type: object
+                  description: 'The document, `versao: 1`, up to 2 MB.'
+              required:
+              - chave
+              - doc
+            example:
+              chave: briefings/v1/topicos/rag.json
+              doc:
+                versao: 1
+                slug: rag
+      responses:
+        '200':
+          description: '{ ok, chave, indice }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Stored.
+                  chave:
+                    type: string
+                    description: Where it was stored.
+                  indice:
+                    type: boolean
+                    description: '`true` when the document is the index.'
+                required:
+                - ok
+                - chave
+                - indice
+        '400':
+          description: Invalid JSON or document.
+        '401':
+          description: BRIEFINGS_TOKEN required.
+        '413':
+          description: Body over 2 MB.
+        '503':
+          description: App files are not configured.
+      tags:
+      - Admin
+  /api/admin/briefings/img/{arquivo}:
+    put:
+      operationId: put_api_admin_briefings_img_by_arquivo
+      summary: The Briefings publisher delivers one preview image
+      description: '`BRIEFINGS_TOKEN` only. WebP up to 512 KB, checked by its bytes; the name is the content''s hash. Idempotent.
+
+        Returns: { ok, arquivo }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: arquivo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: '`<32 hex>.webp`.'
+        example: 25738326cb17586e5c84da2734ccc65c.webp
+      responses:
+        '200':
+          description: '{ ok, arquivo }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Stored.
+                  arquivo:
+                    type: string
+                    description: The file name, served at `/briefings/img/<arquivo>`.
+                required:
+                - ok
+                - arquivo
+        '401':
+          description: BRIEFINGS_TOKEN required.
+        '404':
+          description: 'Not an image address: the name is `<32 hex>.webp`.'
+        '413':
+          description: The body exceeds 512 KB.
+        '422':
+          description: Invalid WebP bytes or content hash.
+        '503':
+          description: App files are not configured.
+      tags:
+      - Admin
+  /api/admin/briefings/exportacao:
+    post:
+      operationId: post_api_admin_briefings_exportacao
+      summary: The desktop delivers the export of the public bookmark folders
+      description: '`BRIEFINGS_EXPORT_TOKEN` only (it opens nothing else). JSON up to 8 MB, checked before it is stored: `versao: 1`, the topics (slug → post ids) and the items (post, author, date, text, up to eight web links). Send it gzip-compressed: a request carries at most 2 MiB. Kept in the app''s files, outside every public route; the publisher on c3 fetches it when it changes.
+
+        Returns: { ok, topicos, itens, etag }'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: Content-Encoding
+        in: header
+        required: false
+        schema:
+          type: string
+        description: '`gzip` when the body is compressed; the 8 MB cap applies after it.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                versao:
+                  type: integer
+                  description: Format version; only `1` is accepted.
+                gerado_em:
+                  type: string
+                  description: When the export was made (ISO 8601).
+                topicos:
+                  type: object
+                  description: Topic slug → post ids, newest first.
+                itens:
+                  type: object
+                  description: 'Post id → the post: author, date, text, quoted post, links.'
+              required:
+              - versao
+              - gerado_em
+              - topicos
+              - itens
+            example:
+              versao: 1
+              gerado_em: '2026-09-28T08:00:00Z'
+              topicos:
+                rag:
+                - '1'
+              itens:
+                '1':
+                  id: '1'
+      responses:
+        '200':
+          description: '{ ok, topicos, itens, etag }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: Stored.
+                  topicos:
+                    type: integer
+                    description: Topics in the export.
+                  itens:
+                    type: integer
+                    description: Items in the export.
+                  etag:
+                    type: string
+                    description: The content's hash, as the publisher sees it in `ETag`.
+                required:
+                - ok
+                - topicos
+                - itens
+                - etag
+        '400':
+          description: Invalid gzip, JSON or export.
+        '401':
+          description: BRIEFINGS_EXPORT_TOKEN required.
+        '413':
+          description: Over 2 MiB on the wire or 8 MB of JSON.
+        '503':
+          description: App files are not configured.
+      tags:
+      - Admin
+    get:
+      operationId: get_api_admin_briefings_exportacao
+      summary: The publisher on c3 fetches the latest export, only when it changed
+      description: '`BRIEFINGS_TOKEN` only. `ETag` is the content''s hash: with `If-None-Match` equal to it, 304 and no body.
+
+        Returns: application/json — the export exactly as the desktop delivered it.'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: If-None-Match
+        in: header
+        required: false
+        schema:
+          type: string
+        description: The `ETag` of the export already held; 304 when unchanged.
+      responses:
+        '200':
+          description: application/json — the export exactly as the desktop delivered it.
+        '401':
+          description: BRIEFINGS_TOKEN required.
+        '404':
+          description: No export delivered yet.
       tags:
       - Admin
 components:
@@ -264,29 +1170,40 @@ components:
           items:
             type: object
           description: The recent runs, newest first.
+        orcamento:
+          type: object
+          description: 'Today''s publication budget (UTC day): `total`, `catalogo` (the catalog slice) and `okf` (the OKF slice), each with `usados` (rows actually written, as D1 counts them: row, key and every index entry, reconciled after each batch), `reservado` (the estimate charged before writing; `reservado / usados` is how inflated the estimate is) and `teto`; `classes` (catalogo, okf, fatos, readmes, fts) with today''s `itens`, `reservado`, `linhas` (rows the database actually wrote) and `media` (real rows per item over the last days, the number the estimate now uses; null without history); plus `dia`.'
       required:
       - fontes
       - falhas
       - runs
+      - orcamento
       description: The state of the catalog's load sources — where the listings come from and when they came.
-    Ok:
-      type: object
-      properties:
-        ok:
-          type: boolean
-          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
-      required:
-      - ok
-      description: Write confirmation with no body of its own to return.
     Anuncio:
       type: object
       properties:
+        seguranca_nivel:
+          type: string
+          description: 'Remote MCP or skill check: risco, atencao, ok, or empty when not checked.'
+        seguranca_estado:
+          type: string
+          description: Remote MCP probe result. login means the check could not read actions without credentials; ok alone does not mean full coverage.
+        seguranca_api:
+          type: string
+          description: URL of the measured security results.
+        moderation:
+          type: object
+          description: 'Admin responses only: reason and reviewed_at from automatic moderation. Empty values mean no automatic decision.'
         id:
           type: string
           description: Listing ID; it is the key across the whole API.
         kind:
           type: string
           description: What this listing is.
+          enum:
+          - mcp
+          - skill
+          - plugin
         category:
           type: string
           description: Category chosen by whoever published.
@@ -300,7 +1217,7 @@ components:
           nullable: true
         body:
           type: string
-          description: Long description, when whoever published wrote one.
+          description: Long description from the submission or automatic review.
           nullable: true
         url:
           type: string
@@ -308,6 +1225,11 @@ components:
         status:
           type: string
           description: State in the catalog.
+          enum:
+          - pending
+          - live
+          - hidden
+          - blocked
         origin:
           type: string
           description: 'Where the listing came from: `official`, `marketplace`, `directory` or a community submission.'
@@ -345,7 +1267,23 @@ components:
           nullable: true
         topico:
           type: string
-          description: Topic inferred from the repository, used in the facets.
+          description: Inferred topic used in search filters, not a publisher declaration. When available, `payload.topico_llm` carries the supporting quote and confidence.
+          nullable: true
+        linguagem:
+          type: string
+          description: Primary language of the repository, when collected.
+          nullable: true
+        licenca:
+          type: string
+          description: SPDX license of the repository, when collected.
+          nullable: true
+        repo_topics:
+          type: string
+          description: Repository topics, separated by spaces.
+          nullable: true
+        repo_slug:
+          type: string
+          description: owner/name of the repository, when known.
           nullable: true
         stars:
           type: integer
@@ -367,6 +1305,13 @@ components:
           type: string
           description: How the repository is doing (active, stalled, archived, renamed, gone).
           nullable: true
+          enum:
+          - ativo
+          - parado
+          - arquivado
+          - renomeado
+          - sumiu
+          - null
         likes:
           type: integer
           description: How many people liked it — the like is reversible and counts people.
@@ -395,6 +1340,32 @@ components:
         comments_api:
           type: string
           description: Absolute URL of this listing's comments.
+        readme_api:
+          type: string
+          description: 'Absolute URL of the collected README (`GET`). On list rows and on the listing page, and only when a README was stored: absent means none was collected — do not build the path yourself.'
+        historico:
+          type: array
+          items:
+            type: object
+          description: 'Listing page only: the repository''s last events, as in `/api/listings/:id/history`; absent when there is none yet.'
+        readme_fonte:
+          type: string
+          description: 'Where the README came from: `repo` (the GitHub repository''s README) or `npm` / `pypi` (the package registry''s README, used when the listing has no repository). Present together with `readme_api`.'
+        readme_bytes:
+          type: integer
+          description: Size of the collected README in bytes, on list rows and on the listing page; 0 when none was collected.
+        readme_sha:
+          type: string
+          description: SHA-256 of the collected README. Listing page only.
+          nullable: true
+        readme_em:
+          type: string
+          description: When the README was stored (UTC). Listing page only.
+          nullable: true
+        payload:
+          type: object
+          description: 'Install payload mirrored from the source. Listing page only. When the topic came from the model, `topico_llm` holds `{topico, confianca, trecho, v}`: the label, the confidence (0–1), the literal quote that justified it and the rule version.'
+          nullable: true
       required:
       - id
       - kind
@@ -414,6 +1385,10 @@ components:
       - oficial_status
       - repo_host
       - topico
+      - linguagem
+      - licenca
+      - repo_topics
+      - repo_slug
       - stars
       - forks
       - prs_abertos
@@ -428,9 +1403,66 @@ components:
       - api
       - go
       - comments_api
+      - readme_bytes
+      - readme_sha
+      - readme_em
+      - payload
       description: 'A catalog listing: MCP server, Agent Skill or Claude Code plugin.'
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` — failure comes as a 4xx/5xx status, not as `ok:false`.
+      required:
+      - ok
+      description: Write confirmation with no body of its own to return.
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Guest mr_…, session sess_… or ADMIN_TOKEN.
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

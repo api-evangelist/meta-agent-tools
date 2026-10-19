@@ -1,0 +1,382 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Bundles API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Bundles
+paths:
+  /api/bundles:
+    get:
+      operationId: search_bundles
+      summary: 'Paginated search of the index: every live OKF bundle, from GitHub and from live…'
+      description: 'Only `live` bundles. Free text matches the name, the tagline, the description and the origin identifier (`owner/repo:path` or the bundle URL). No `total` on purpose: `GET /api/okf/stats` has it.
+
+        Returns: { items[{id,name,tagline,description,okf_version,concepts,concept_list,type,index_url,page_url,source,repo,indexed_at,updated_at,api}], limit, offset, next_offset, next }'
+      security: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Free text over name, tagline, description and origin identifier.
+        example: agent
+      - name: origin
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - github
+          - domain
+        description: 'Provenance: found by the GitHub sweep, or submitted by a domain.'
+      - name: repo
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Only bundles of one repository, `owner/repo` (case-insensitive).
+        example: fastendpoints/fastendpoints
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Only bundles declaring one of these `okf_version` values; comma-separated, up to 5.
+        example: 0.1,0.2
+      - name: concept
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Text in the indexed root content, including listed concept names and summaries (first 1000 characters); up to 80 characters.
+      - name: concepts
+        in: query
+        required: false
+        schema:
+          type: string
+        description: 'Number of entries listed by the root. Up to 5 comma-separated bands: 0,1-5,6-20,21-100,101+.'
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Type declared by the root, not the types of every concept. Up to 5 comma-separated values, 40 characters each.
+      - name: license
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Repository license. Up to 5 comma-separated values, 40 characters each.
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Only bundles whose repository language is one of these; comma-separated, up to 5 (GitHub bundles).
+        example: TypeScript,Go
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: recent
+          enum:
+          - recent
+          - updated
+          - name
+          - stars
+        description: 'Result order: arrival, last content change, name or repository stars.'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 24
+        description: Bundles per page, at most 100.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: How many bundles to skip. Use `next_offset` from the previous response; the list ends at 1000.
+      responses:
+        '200':
+          description: '{ items[{id,name,tagline,description,okf_version,concepts,concept_list,type,index_url,page_url,source,repo,indexed_at,updated_at,api}], limit, offset, next_offset, next }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeBundles'
+      tags:
+      - Bundles
+  /api/bundles/{id}:
+    get:
+      operationId: get_bundle
+      summary: One bundle's card, by id
+      description: '`live` and `low` (example or fixture bundles kept out of the search) both answer here.
+
+        Returns: { id, name, tagline, description, okf_version, concepts, concept_list[{name,url,summary}], type, index_url, page_url, source{origin,via,url,host,repo,dir,path}, repo{stars,forks,pushed_at,state,language,license}, indexed_at, updated_at, api }'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Bundle id, the `id` of every item in the list.
+        example: okf-fastendpoints
+      responses:
+        '200':
+          description: '{ id, name, tagline, description, okf_version, concepts, concept_list[{name,url,summary}], type, index_url, page_url, source{origin,via,url,host,repo,dir,path}, repo{stars,forks,pushed_at,state,language,license}, indexed_at, updated_at, api }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '404':
+          description: No bundle with that id, or it is not public.
+      tags:
+      - Bundles
+components:
+  schemas:
+    Concept:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Link text as written in the root index.
+        url:
+          type: string
+          description: Absolute URL of the entry, resolved against the root; a directory link gets its `index.md`.
+        summary:
+          type: string
+          description: Text after the link on the same line; empty when the index has none.
+      required:
+      - name
+      - url
+      - summary
+      description: 'One entry the root `index.md` lists: a concept file or a subdirectory of the bundle.'
+    RepoSignal:
+      type: object
+      properties:
+        stars:
+          type: integer
+          description: Stargazers at the last collection.
+        forks:
+          type: integer
+          description: Forks at the last collection.
+        pushed_at:
+          type: string
+          description: Last push seen, `YYYY-MM-DD HH:MM:SS` UTC.
+          nullable: true
+        state:
+          type: string
+          description: Repository state as classified by the enricher (active, stalled, archived, gone).
+          nullable: true
+        language:
+          type: string
+          description: Primary language reported by GitHub.
+          nullable: true
+        license:
+          type: string
+          description: License identifier reported by GitHub.
+          nullable: true
+      required:
+      - stars
+      - forks
+      - pushed_at
+      - state
+      - language
+      - license
+      description: Repository signal collected by the enricher — GitHub bundles only.
+    Bundle:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Bundle id; the key across the whole API.
+        name:
+          type: string
+          description: Title of the root `index.md`; `owner/repo · dir` when it has none or the title is a listing heading (`Files`, `Index`).
+        tagline:
+          type: string
+          description: One line from the frontmatter `description`; empty when the author gave none.
+        description:
+          type: string
+          description: Body of the root `index.md`, capped at 1000 characters.
+        okf_version:
+          type: string
+          description: The `okf_version` the bundle declares (0.1 and 0.2 coexist).
+        concepts:
+          type: integer
+          description: How many linked entries the root index lists.
+        concept_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Concept'
+          description: The entries the root lists, in order, up to 24 — read from the indexed body, so a very long root is cut.
+        type:
+          type: string
+          description: The `type` declared in the root frontmatter, when any.
+        index_url:
+          type: string
+          description: The root `index.md`, raw — what you hand to an agent.
+        page_url:
+          type: string
+          description: 'The page a human opens: the file on GitHub, or the bundle URL on its site.'
+        source:
+          allOf:
+          - $ref: '#/components/schemas/BundleSource'
+          description: Provenance and location of the bundle.
+        repo:
+          allOf:
+          - $ref: '#/components/schemas/RepoSignal'
+          description: Repository signal; `null` for bundles served by a domain.
+          nullable: true
+        indexed_at:
+          type: string
+          description: When the bundle entered the index, `YYYY-MM-DD HH:MM:SS` UTC.
+        updated_at:
+          type: string
+          description: When its indexed content last changed, `YYYY-MM-DD HH:MM:SS` UTC.
+        api:
+          type: string
+          description: Absolute URL of this bundle's card.
+      required:
+      - id
+      - name
+      - tagline
+      - description
+      - okf_version
+      - concepts
+      - concept_list
+      - type
+      - index_url
+      - page_url
+      - source
+      - repo
+      - indexed_at
+      - updated_at
+      - api
+      description: 'One OKF bundle: a markdown tree whose root `index.md` carries `okf_version`.'
+    BundleSource:
+      type: object
+      properties:
+        origin:
+          type: string
+          description: Provenance of the bundle.
+          enum:
+          - github
+          - domain
+        via:
+          type: string
+          description: 'How it got in: the GitHub sweep or an IndexNow ping.'
+          enum:
+          - sweep
+          - indexnow
+        url:
+          type: string
+          description: The repository (GitHub) or the site root (domain).
+        host:
+          type: string
+          description: Hostname of `url`; empty when it cannot be parsed.
+        repo:
+          type: string
+          description: '`owner/repo` in lowercase, GitHub bundles only.'
+          nullable: true
+        dir:
+          type: string
+          description: Directory of the bundle inside the repository (empty at the root).
+        path:
+          type: string
+          description: Path of the root `index.md` inside the repository.
+      required:
+      - origin
+      - via
+      - url
+      - host
+      - repo
+      - dir
+      - path
+      description: Where a bundle comes from and how it entered the index.
+    PaginaDeBundles:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bundle'
+          description: The bundles on this page.
+        limit:
+          type: integer
+          description: Page size applied.
+        offset:
+          type: integer
+          description: Offset applied.
+        next_offset:
+          type: integer
+          description: Offset of the next page; `null` when there is no more (or past the 1000 cap).
+          nullable: true
+        next:
+          type: string
+          description: Absolute URL of the next page, same filters; follow it until it comes back `null`.
+          nullable: true
+      required:
+      - items
+      - limit
+      - offset
+      - next_offset
+      - next
+      description: 'A page of the index. No `total`: counting on every search would cost a scan without changing any decision — `GET /api/okf/stats` has the totals.'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

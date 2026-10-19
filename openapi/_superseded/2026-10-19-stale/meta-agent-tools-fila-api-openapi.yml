@@ -1,0 +1,81 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Fila API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Fila
+paths:
+  /api/fila:
+    get:
+      operationId: get_api_fila
+      summary: 'The public snapshot of the enrichment queue: how much of the catalog has been…'
+      description: 'It is public because it is about the catalog''s health, not about anyone: aggregate numbers only, no identifiable listing.
+
+        Returns: { ok, fila{total,concluidos,vencidos,com_falha,processados,estados,motivos} }'
+      security: []
+      responses:
+        '200':
+          description: '{ ok, fila{total,concluidos,vencidos,com_falha,processados,estados,motivos} }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoFila'
+      tags:
+      - Fila
+components:
+  schemas:
+    RetratoFila:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Listings in the queue.
+        concluidos:
+          type: integer
+          description: Already checked.
+        vencidos:
+          type: integer
+          description: With an expired check, waiting for a new pass.
+        com_falha:
+          type: integer
+          description: That failed the check.
+        processados:
+          type: integer
+          description: Processed in the current window.
+        estados:
+          type: object
+          description: 'Count per `repo_estado`: ativo, parado, arquivado, renomeado, sumiu.'
+        motivos:
+          type: object
+          description: Count per reason the listing is in the state it is in.
+      required:
+      - total
+      - concluidos
+      - vencidos
+      - com_falha
+      - processados
+      - estados
+      - motivos
+      description: Counters of the enrichment queue, pushed by the robot that checks the repositories.
+    EstadoFila:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true` when there is a snapshot.
+        fila:
+          allOf:
+          - $ref: '#/components/schemas/RetratoFila'
+          description: The queue's numbers.
+      required:
+      - ok
+      - fila
+      description: 'The snapshot of the enrichment queue: how many listings have been checked and what is known about them.'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

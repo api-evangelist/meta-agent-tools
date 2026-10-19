@@ -1,0 +1,849 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log A2a API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: A2a
+paths:
+  /api/a2a/agents:
+    get:
+      operationId: a2a_agent_search
+      summary: 'The A2A agent index: agents that publish an AgentCard, with text search and…'
+      description: 'Collected from public A2A registries and served as it comes — no review queue hides a record; quality is the order, never visibility. One row per agent, merged across the registries that list it: `fontes` says which, and `creditos` carries each one''s license, which travels with the data. Values inside one parameter are OR''d, different parameters are AND''d. Cached for 60 seconds. A MAT catalog read, served by the index host `https://api.agentalog.com`; this host forwards the call there.
+
+        Returns: { ok, total, count, items[{chave,dominio,nome,descricao,url,cartao,publicador,protocolo,saudavel,conforme,verificado,uptime,skills_n,tags,fontes,creditos,visto_em}], _links }'
+      security: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Substring of the name, description, key, publisher or the card's skills, in any letter case (`%` and `_` are taken literally); up to 80 characters.
+        example: weather
+      - name: saude
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - sim
+          - nao
+          - sem_medida
+        description: 'Health the registries measured: `sim` answered, `nao` did not, `sem_medida` never measured. Comma-separated values are OR''d (up to 12, each up to 200 characters).'
+      - name: protocolo
+        in: query
+        required: false
+        schema:
+          type: string
+        description: A2A protocol version as normalized (`0.3`, `1.0`…); `/api/a2a/facets` lists the ones present. Comma-separated values are OR'd (up to 12, each up to 200 characters).
+        example: 0.3,1.0
+      - name: fonte
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - a2a_registry
+          - a2a_global
+          - agenstry
+        description: Only agents listed by this registry. Comma-separated values are OR'd (up to 12, each up to 200 characters).
+      - name: tag
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Exact tag of the card's skills, case-sensitive; `/api/a2a/facets` lists the 40 most used. Comma-separated values are OR'd (up to 12, each up to 200 characters).
+        example: x402
+      - name: publicador
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Exact publisher, as `publicador` shows it. Comma-separated values are OR'd (up to 12, each up to 200 characters).
+      - name: skills
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '1'
+        description: '`1` keeps only agents whose card lists at least one skill.'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+        description: Items per page, 1–50; more is capped at 50, anything else means 20.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: Offset, capped at 20000 (a larger value reads as 20000). Prefer `_links.next`.
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ ok, total, count, items[{chave,dominio,nome,descricao,url,cartao,publicador,protocolo,saudavel,conforme,verificado,uptime,skills_n,tags,fontes,creditos,visto_em}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeAgentesA2A'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - A2a
+  /api/a2a/agents/{chave}:
+    get:
+      operationId: a2a_agent
+      summary: 'One A2A agent: its card''s skills and capabilities, protocol, health and the…'
+      description: 'The same row as the list plus what the card declares: every skill, the `capabilities` object, the protocol version as written, the documentation and icon URLs, and when we first saw it. Cached for 60 seconds; a MAT catalog read, like the list.
+
+        Returns: { ok, agent{chave,dominio,nome,descricao,url,cartao,publicador,protocolo,saudavel,conforme,verificado,uptime,skills_n,tags,fontes,creditos,visto_em,protocolo_declarado,documentacao,icone,capacidades,skills,primeiro_em} }'
+      security: []
+      parameters:
+      - name: chave
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The agent's `chave` from `/api/a2a/agents` — usually the card's domain. URL-encode it; up to 200 characters are read.
+        example: coinrailz.com
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ ok, agent{chave,dominio,nome,descricao,url,cartao,publicador,protocolo,saudavel,conforme,verificado,uptime,skills_n,tags,fontes,creditos,visto_em,protocolo_declarado,documentacao,icone,capacidades,skills,primeiro_em} }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FichaDeAgenteA2A'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '404':
+          description: 'No agent is indexed under that key (`error: not_found`).'
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - A2a
+  /api/a2a/facets:
+    get:
+      operationId: get_api_a2a_facets
+      summary: How many A2A agents exist per health state, protocol, registry, tag and…
+      description: 'The counts behind the filters of `/api/a2a/agents`, over the whole index — no filter applies here. The index host checks collection checkpoints about every 9 minutes and recounts after a change or once a day. The last valid response survives restarts on disk; while it renews, a previously confirmed response is served for up to 6 hours. Free and outside the MAT read allowance. This host answers with a 308 to the index host `https://api.agentalog.com` — follow the redirect.
+
+        Returns: { ok, facets, _links }'
+      security: []
+      responses:
+        '200':
+          description: '{ ok, facets, _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FacetasA2A'
+        '503':
+          description: No count in memory yet and the database did not answer; retry after `Retry-After` seconds.
+      tags:
+      - A2a
+  /api/a2a/acervo:
+    get:
+      operationId: get_api_a2a_acervo
+      summary: What came along with the A2A registries — MCP servers, skills, paid APIs…
+      description: 'Agent registries ship more than agents: Agenstry''s feed also carries MCP servers, skills, paid APIs and workflows, and the curated GitHub lists cite repositories and domains. Every item is kept and shown with its source and license; `no_catalogo` says whether this catalog already lists it (same GitHub repository or same URL) — provenance, never a visibility filter. Filters are AND''d, one value each. Items the catalog does not have yet come first; `total` counts the filter and paging is by `offset` (there is no `next` link). Cached for 60 seconds; a MAT catalog read.
+
+        Returns: { ok, total, count, items[{fonte,credito,chave,kind,nome,descricao,url,dominio,repo,no_catalogo,visto_em}], _links }'
+      security: []
+      parameters:
+      - name: kind
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - mcp
+          - skill
+          - paid_api
+          - workflow
+          - repo
+          - semente
+          - lista
+        description: 'What the item is: see `kind` in the item.'
+      - name: fonte
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - agenstry
+          - a2a_github
+        description: Only the items of this source.
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Substring of the name, description or key, in any letter case (`%` and `_` are taken literally); up to 80 characters.
+        example: postgres
+      - name: casou
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '0'
+          - '1'
+        description: '`1` only items this catalog already lists, `0` only the ones it does not.'
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+        description: Items per page, 1–50; more is capped at 50, anything else means 20.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: Offset, capped at 50000 (a larger value reads as 50000).
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ ok, total, count, items[{fonte,credito,chave,kind,nome,descricao,url,dominio,repo,no_catalogo,visto_em}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDoAcervoA2A'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - A2a
+  /api/a2a/stats:
+    get:
+      operationId: get_api_a2a_stats
+      summary: 'Where the A2A index comes from: records per source, credit and license, and…'
+      description: 'An index that does not show where its data came from asks for trust instead of giving proof. `bruto_por_fonte` counts the raw records kept per source, `acervo_por_kind` sizes `/api/a2a/acervo`, and `coleta` gives each source''s last round: when, how many, how long, the error if it failed and when the next is due. The same collector reads the MCP indexes, so they appear here too, with `credito: null` — `/api/indices` credits them. The index host checks collection checkpoints about every 9 minutes and recounts after a change or once a day. The last valid response survives restarts on disk; while it renews, a previously confirmed response is served for up to 6 hours. Free and outside the MAT read allowance. This host answers with a 308 to the index host `https://api.agentalog.com` — follow the redirect.
+
+        Returns: { ok, agentes, agentes_com_skills, bruto_por_fonte[{fonte,itens,credito}], acervo_por_kind[{kind,itens,no_catalogo}], coleta[{fonte,credito,rodada_em,itens,novos,mudados,ms,http,erro,proxima_em}], _links }'
+      security: []
+      responses:
+        '200':
+          description: '{ ok, agentes, agentes_com_skills, bruto_por_fonte[{fonte,itens,credito}], acervo_por_kind[{kind,itens,no_catalogo}], coleta[{fonte,credito,rodada_em,itens,novos,mudados,ms,http,erro,proxima_em}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoDaColetaA2A'
+        '503':
+          description: No count in memory yet and the database did not answer; retry after `Retry-After` seconds.
+      tags:
+      - A2a
+components:
+  schemas:
+    RodadaDaColetaA2A:
+      type: object
+      properties:
+        fonte:
+          type: string
+          description: 'Source id: the four A2A sources and the MCP indexes read by the same collector.'
+        credito:
+          allOf:
+          - $ref: '#/components/schemas/CreditoDeFonteA2A'
+          description: Credit and license of an A2A source; `null` for an MCP index (`/api/indices` credits it).
+          nullable: true
+        rodada_em:
+          type: string
+          description: When the last round ended (ISO 8601).
+        itens:
+          type: integer
+          description: Items read in that round.
+        novos:
+          type: integer
+          description: Items seen for the first time in it.
+        mudados:
+          type: integer
+          description: Items whose raw record changed in it.
+        ms:
+          type: integer
+          description: How long the round took, in milliseconds.
+        http:
+          type: integer
+          description: '`200` when the round succeeded; when it failed, the source''s HTTP status, or `0` if it never answered.'
+        erro:
+          type: string
+          description: Why the last round failed (`HTTP 503`, a timeout…); `null` when it succeeded.
+          nullable: true
+        proxima_em:
+          type: string
+          description: When the next round is due (ISO 8601).
+          nullable: true
+      required:
+      - fonte
+      - credito
+      - rodada_em
+      - itens
+      - novos
+      - mudados
+      - ms
+      - http
+      - erro
+      - proxima_em
+      description: The last collection round of one source on the index host.
+    CreditoDeFonteA2A:
+      type: object
+      properties:
+        nome:
+          type: string
+          description: Registry or list name.
+        url:
+          type: string
+          description: Its site.
+        licenca:
+          type: string
+          description: License or terms under which we republish it, as our credit table writes them; Agenstry's CC-BY-4.0 requires attribution wherever the data appears.
+      required:
+      - nome
+      - url
+      - licenca
+      description: Who published the record and under which terms. It travels with the data because the data is theirs.
+    FacetasA2A:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        facets:
+          type: object
+          description: 'One list of `{ valor, n }` per filter, most frequent first: `saude` (`sim`, `nao`, `sem_medida`), `protocolo` (`""` counts the agents without a version), `fonte` (each row also carries `credito`), `tag` (the 40 most used) and `publicador` (the 25 largest; agents without one are left out).'
+        _links:
+          type: object
+          description: '`self`: this resource.'
+      required:
+      - ok
+      - facets
+      - _links
+      description: How many agents exist per filter value, over the whole index.
+    PaginaDoAcervoA2A:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        total:
+          type: integer
+          description: Items matching the filters.
+        count:
+          type: integer
+          description: Items on this page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemDoAcervoA2A'
+          description: Items this catalog does not list yet first, then the most recently written.
+        _links:
+          type: object
+          description: '`self` only: page with `offset`.'
+      required:
+      - ok
+      - total
+      - count
+      - items
+      - _links
+      description: A page of what came along with the agent registries.
+    EstadoDaColetaA2A:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        agentes:
+          type: integer
+          description: Agents in the index.
+        agentes_com_skills:
+          type: integer
+          description: Agents whose card lists at least one skill.
+        bruto_por_fonte:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrutoDaFonteA2A'
+          description: Every source of the collector, the MCP indexes included, largest first.
+        acervo_por_kind:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContagemDoAcervoA2A'
+          description: The size of `/api/a2a/acervo` per kind, largest first.
+        coleta:
+          type: array
+          items:
+            $ref: '#/components/schemas/RodadaDaColetaA2A'
+          description: The last round of each source, by source id.
+        _links:
+          type: object
+          description: '`self`: this resource.'
+      required:
+      - ok
+      - agentes
+      - agentes_com_skills
+      - bruto_por_fonte
+      - acervo_por_kind
+      - coleta
+      - _links
+      description: 'Where the A2A index comes from and how fresh it is: transparency of source is part of the index.'
+    FichaDeAgenteA2A:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        agent:
+          allOf:
+          - $ref: '#/components/schemas/AgenteA2ACompleto'
+          description: 'The agent record: the list row, skills, capabilities, first sighting.'
+      required:
+      - ok
+      - agent
+      description: One agent, with everything its card declares.
+    AgenteA2ACompleto:
+      type: object
+      properties:
+        chave:
+          type: string
+          description: 'The agent''s key here and in `/api/a2a/agents/{chave}`: the card''s domain, lowercase and without `www.`; when no registry gave an address, `pkg:<package>` (Global A2A Registry), `id:<id>` (A2A Registry) or Agenstry''s own id.'
+        dominio:
+          type: string
+          description: Domain of the card, the same as `chave` when there is one; empty when no registry gave an address.
+        nome:
+          type: string
+          description: Name as the card or the registry published it.
+        descricao:
+          type: string
+          description: Description as published, up to 2,000 characters.
+        url:
+          type: string
+          description: The agent's A2A endpoint — the card's `url`, or the first `supportedInterfaces` address in spec 1.0; empty when unknown.
+        cartao:
+          type: string
+          description: URL of the AgentCard (`/.well-known/agent-card.json` or the address a registry gave); empty when unknown.
+        publicador:
+          type: string
+          description: Organization or author behind the agent; empty when unknown.
+        protocolo:
+          type: string
+          description: A2A protocol version normalized to `major.minor` (`0.3`, `1.0`…); empty when the card declares none, or a major above 3.
+        saudavel:
+          type: boolean
+          description: Did the agent answer the last health check a registry ran? `null` when no registry measured it.
+          nullable: true
+        conforme:
+          type: boolean
+          description: Does the card conform to the spec, as the A2A Registry checked it? `null` when not checked.
+          nullable: true
+        verificado:
+          type: boolean
+          description: Was the publisher verified — a Global A2A Registry verification level or an LEI at Agenstry? `null` when no registry says.
+          nullable: true
+        uptime:
+          type: number
+          description: Uptime percentage (0–100) measured by the A2A Registry; `null` when not measured.
+          nullable: true
+        skills_n:
+          type: integer
+          description: How many skills the card declares; the agent record lists them.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Every tag of the card's skills and of the registries, up to 40.
+        fontes:
+          type: array
+          items:
+            type: string
+          description: Registries that list it (`a2a_registry`, `a2a_global`, `agenstry`), sorted — the more, the more confirmed.
+        creditos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditoDeFonteA2A'
+          description: Credit and license of each registry in `fontes`, in the same order; republishing the row requires them.
+        visto_em:
+          type: string
+          description: When a registry last brought a change for this agent (ISO 8601).
+        protocolo_declarado:
+          type: string
+          description: The protocol version exactly as the card wrote it (`0.3.0`, `unknown`…); empty when none.
+        documentacao:
+          type: string
+          description: Documentation, manifest or OpenAPI URL the card or a registry gave; empty when none.
+        icone:
+          type: string
+          description: Icon URL the card declares, at the publisher; empty when none.
+        capacidades:
+          type: object
+          description: The card's `capabilities` as published (`streaming`, `pushNotifications`, `extensions`…); `{}` when absent.
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/HabilidadeA2A'
+          description: The card's skills, up to 60, in the card's order.
+        primeiro_em:
+          type: string
+          description: When the collector first saw this agent (ISO 8601).
+      required:
+      - chave
+      - dominio
+      - nome
+      - descricao
+      - url
+      - cartao
+      - publicador
+      - protocolo
+      - saudavel
+      - conforme
+      - verificado
+      - uptime
+      - skills_n
+      - tags
+      - fontes
+      - creditos
+      - visto_em
+      - protocolo_declarado
+      - documentacao
+      - icone
+      - capacidades
+      - skills
+      - primeiro_em
+      description: 'The agent record: the list row plus everything its card declares.'
+    PaginaDeAgentesA2A:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        total:
+          type: integer
+          description: Agents matching the filters.
+        count:
+          type: integer
+          description: Agents on this page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgenteA2A'
+          description: Agents with a published address first, then those whose card lists skills, then those listed by more registries, then healthy ones, then the most recently changed.
+        _links:
+          type: object
+          description: '`self`, and `next` — the absolute URL of the next page with the same filters — only while more pages remain.'
+      required:
+      - ok
+      - total
+      - count
+      - items
+      - _links
+      description: A page of the A2A agent index.
+    HabilidadeA2A:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Skill id in the card, up to 120 characters.
+        nome:
+          type: string
+          description: Skill name, up to 200 characters.
+        descricao:
+          type: string
+          description: What the skill does, up to 600 characters.
+        tags:
+          type: array
+          items:
+            type: string
+          description: The skill's tags, up to 12 of 40 characters each.
+      required:
+      - id
+      - nome
+      - descricao
+      - tags
+      description: One skill as the AgentCard declares it, trimmed to what search and the agent record need.
+    ItemDoAcervoA2A:
+      type: object
+      properties:
+        fonte:
+          type: string
+          description: 'Source that brought it: `agenstry` (MCP servers, skills, paid APIs, workflows) or `a2a_github` (repositories, domains and the curated lists themselves).'
+        credito:
+          allOf:
+          - $ref: '#/components/schemas/CreditoDeFonteA2A'
+          description: Credit and license of that source.
+          nullable: true
+        chave:
+          type: string
+          description: 'Key of the item within its source: `<kind>:<Agenstry id>`, `repo:<owner/repo>`, `semente:<domain>` or the list name.'
+        kind:
+          type: string
+          description: '`mcp`, `skill`, `paid_api` or `workflow` (from Agenstry); `repo` (a repository a curated list cites), `semente` (a domain a list cites, a candidate to host an agent) or `lista` (the curated list itself).'
+        nome:
+          type: string
+          description: Name at the source, up to 300 characters.
+        descricao:
+          type: string
+          description: Description at the source, up to 1,200 characters.
+        url:
+          type: string
+          description: URL at the source, up to 600 characters; empty when none.
+        dominio:
+          type: string
+          description: Domain of `url`, lowercase and without `www.`.
+        repo:
+          type: string
+          description: GitHub `owner/repo`, lowercase, when the item names one; empty otherwise.
+        no_catalogo:
+          type: object
+          description: '`{ id, casou_por }` when this catalog already lists it: `id` is the listing (`/api/listings/{id}`) and `casou_por` says how it matched — `repo` (same GitHub repository) or `url` (same URL). `null` when the catalog does not have it.'
+          nullable: true
+        visto_em:
+          type: string
+          description: When the collector last wrote this item (ISO 8601).
+      required:
+      - fonte
+      - credito
+      - chave
+      - kind
+      - nome
+      - descricao
+      - url
+      - dominio
+      - repo
+      - no_catalogo
+      - visto_em
+      description: Something that came along with the agent registries — an MCP server, a skill, a paid API, a workflow, a repository or a domain — kept with its source and matched to this catalog.
+    BrutoDaFonteA2A:
+      type: object
+      properties:
+        fonte:
+          type: string
+          description: Source id.
+        itens:
+          type: integer
+          description: Raw records kept from it.
+        credito:
+          allOf:
+          - $ref: '#/components/schemas/CreditoDeFonteA2A'
+          description: Credit and license of an A2A source; `null` for an MCP index (`/api/indices` credits it).
+          nullable: true
+      required:
+      - fonte
+      - itens
+      - credito
+      description: The raw records kept from one source, exactly as they came.
+    ContagemDoAcervoA2A:
+      type: object
+      properties:
+        kind:
+          type: string
+          description: The `kind` of `/api/a2a/acervo`.
+        itens:
+          type: integer
+          description: Items of this kind.
+        no_catalogo:
+          type: integer
+          description: Items of this kind that the catalog already lists.
+      required:
+      - kind
+      - itens
+      - no_catalogo
+      description: How much of one kind came along with the registries, and how much of it this catalog already lists.
+    AgenteA2A:
+      type: object
+      properties:
+        chave:
+          type: string
+          description: 'The agent''s key here and in `/api/a2a/agents/{chave}`: the card''s domain, lowercase and without `www.`; when no registry gave an address, `pkg:<package>` (Global A2A Registry), `id:<id>` (A2A Registry) or Agenstry''s own id.'
+        dominio:
+          type: string
+          description: Domain of the card, the same as `chave` when there is one; empty when no registry gave an address.
+        nome:
+          type: string
+          description: Name as the card or the registry published it.
+        descricao:
+          type: string
+          description: Description as published, up to 2,000 characters.
+        url:
+          type: string
+          description: The agent's A2A endpoint — the card's `url`, or the first `supportedInterfaces` address in spec 1.0; empty when unknown.
+        cartao:
+          type: string
+          description: URL of the AgentCard (`/.well-known/agent-card.json` or the address a registry gave); empty when unknown.
+        publicador:
+          type: string
+          description: Organization or author behind the agent; empty when unknown.
+        protocolo:
+          type: string
+          description: A2A protocol version normalized to `major.minor` (`0.3`, `1.0`…); empty when the card declares none, or a major above 3.
+        saudavel:
+          type: boolean
+          description: Did the agent answer the last health check a registry ran? `null` when no registry measured it.
+          nullable: true
+        conforme:
+          type: boolean
+          description: Does the card conform to the spec, as the A2A Registry checked it? `null` when not checked.
+          nullable: true
+        verificado:
+          type: boolean
+          description: Was the publisher verified — a Global A2A Registry verification level or an LEI at Agenstry? `null` when no registry says.
+          nullable: true
+        uptime:
+          type: number
+          description: Uptime percentage (0–100) measured by the A2A Registry; `null` when not measured.
+          nullable: true
+        skills_n:
+          type: integer
+          description: How many skills the card declares; the agent record lists them.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Up to 8 tags from the card's skills and the registries — what the agent does, in its publisher's words.
+        fontes:
+          type: array
+          items:
+            type: string
+          description: Registries that list it (`a2a_registry`, `a2a_global`, `agenstry`), sorted — the more, the more confirmed.
+        creditos:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditoDeFonteA2A'
+          description: Credit and license of each registry in `fontes`, in the same order; republishing the row requires them.
+        visto_em:
+          type: string
+          description: When a registry last brought a change for this agent (ISO 8601).
+      required:
+      - chave
+      - dominio
+      - nome
+      - descricao
+      - url
+      - cartao
+      - publicador
+      - protocolo
+      - saudavel
+      - conforme
+      - verificado
+      - uptime
+      - skills_n
+      - tags
+      - fontes
+      - creditos
+      - visto_em
+      description: An agent that publishes an A2A AgentCard, merged across the registries that list it — one row per card domain.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

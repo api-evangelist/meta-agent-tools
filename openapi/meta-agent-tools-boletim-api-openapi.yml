@@ -1,0 +1,191 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Boletim API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Boletim
+paths:
+  /api/boletim/config:
+    get:
+      operationId: get_api_boletim_config
+      summary: Available newsletter topics, account support and delivery interval
+      description: 'Returns: { disponivel, conta, topicos, intervaloDias }'
+      security: []
+      responses:
+        '200':
+          description: '{ disponivel, conta, topicos, intervaloDias }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disponivel:
+                    type: boolean
+                    description: Subscription service is configured.
+                  conta:
+                    type: boolean
+                    description: Verified accounts can manage their own subscription.
+                  topicos:
+                    type: array
+                    items:
+                      type: object
+                    description: Published topic slugs and translated names.
+                  intervaloDias:
+                    type: integer
+                    description: Minimum delivery interval in days.
+                required:
+                - disponivel
+                - conta
+                - topicos
+                - intervaloDias
+      tags:
+      - Boletim
+  /api/boletim/assinatura:
+    get:
+      operationId: get_api_boletim_assinatura
+      summary: The subscription for the account's verified email
+      description: 'Private response. No email parameter. Returns email, state, revision, topics, channels and language.
+
+        Returns: { assinatura }'
+      security:
+      - globalAccount: []
+      responses:
+        '200':
+          description: '{ assinatura }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assinatura:
+                    type: object
+                    description: Current account subscription.
+                required:
+                - assinatura
+        '401':
+          description: Sign in first.
+        '503':
+          description: Subscription service unavailable.
+      tags:
+      - Boletim
+    post:
+      operationId: post_api_boletim_assinatura
+      summary: Subscribe, save preferences or unsubscribe from the account
+      description: 'The verified account supplies the email. Requires same-origin CSRF and the current revision. News and site updates require separate choices. Existing subscribers keep news only.
+
+        Returns: { assinatura }'
+      security:
+      - globalAccount: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ativo:
+                  type: boolean
+                  description: False unsubscribes in one request.
+                revisao:
+                  type: integer
+                  description: Revision from the private GET.
+                topicos:
+                  type: array
+                  items:
+                    type: string
+                  description: Up to 40 published topic slugs. Empty selects all news topics.
+                canais:
+                  type: array
+                  items:
+                    type: string
+                  description: noticias and/or novidades. Defaults to noticias when omitted.
+                lingua:
+                  type: string
+                  description: Language used in newsletter messages.
+                  enum:
+                  - en
+                  - pt
+              required:
+              - ativo
+              - revisao
+            example:
+              ativo: false
+              revisao: 1
+      responses:
+        '200':
+          description: '{ assinatura }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assinatura:
+                    type: object
+                    description: Saved subscription with the next revision.
+                required:
+                - assinatura
+        '400':
+          description: Invalid preferences.
+        '401':
+          description: Sign in first.
+        '403':
+          description: Origin or CSRF rejected.
+        '409':
+          description: Reload the subscription; its revision changed or delivery is suppressed.
+        '429':
+          description: Try later.
+      tags:
+      - Boletim
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

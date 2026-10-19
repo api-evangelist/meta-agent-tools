@@ -1,0 +1,39 @@
+openapi: 3.2.0
+info:
+  title: Meta Agent Tools Guest API
+  version: 1.0.0
+  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+servers:
+- url: https://agentalog.com
+tags:
+- name: Guest
+paths:
+  /api/guest:
+    post:
+      operationId: create_guest
+      summary: Creates a guest `mr_…` — it is the identity that likes, comments and visits
+      description: 'Asks for no e-mail. Publishing a listing is what requires an account (or a payment).
+
+        Returns: { token }'
+      security: []
+      responses:
+        '200':
+          description: '{ token }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: The guest, prefix `mr_`. Send it in `X-Guest-Token` or as Bearer.
+                required:
+                - token
+      tags:
+      - Guest
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_…, session sess_… or ADMIN_TOKEN.

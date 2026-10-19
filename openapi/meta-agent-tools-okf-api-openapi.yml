@@ -1,8 +1,8 @@
 openapi: 3.2.0
 info:
-  title: Meta Agent Tools Okf API
+  title: Agentalog — Agent Auto Log Okf API
   version: 1.0.0
-  description: Meta Agent Tools — registry of MCP servers, skills and plugins.
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
 servers:
 - url: https://agentalog.com
 tags:
@@ -20,6 +20,8 @@ paths:
         required: true
         schema:
           type: string
+        description: '`index.md`, `sobre.md`, `api.md` or `faq.md`.'
+        example: index.md
       responses:
         '200':
           description: '`text/markdown`. Start at `/okf/index.md`, which lists the bundle.'
@@ -27,9 +29,201 @@ paths:
           description: File outside the bundle.
       tags:
       - Okf
+  /api/okf/ping:
+    post:
+      operationId: submit_okf
+      summary: Submits OKF bundles from a domain you control, using the IndexNow protocol
+      description: 'No account, no payment: ownership is proved by a key file on the host, exactly as IndexNow does it. Host `https:///.txt` containing the key (or point `keyLocation` at another path on the SAME host), then send the bundle URLs. We answer **202**: the key has not been checked yet. Verification and reading happen on our collector, never at the edge — so nothing is published, and no URL of yours is fetched, before the key matches. Re-sending a URL is how you say the bundle changed; it goes back in line to be re-read. At most 100 URLs per request and 200 per host per UTC day. The same queue is served by `POST https://okfindex.com/api/ping`, the index''s own home — search, bundle cards and statistics live there.
+
+        Returns: { ok, estado, recebidos, chave_em }'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host:
+                  type: string
+                  description: The host that owns the bundles.
+                key:
+                  type: string
+                  description: 8 to 128 characters of [a-zA-Z0-9-].
+                keyLocation:
+                  type: string
+                  description: Where the key file lives. Defaults to `https://<host>/<key>.txt`; must be on `host`.
+                urlList:
+                  type: array
+                  items:
+                    type: string
+                  description: 'Bundle `index.md` URLs. https, on `host`, ending in .md. No fixed path: the spec defines no discovery convention.'
+              required:
+              - host
+              - key
+              - urlList
+            example:
+              host: example.com
+              key: a1b2c3d4e5f60718
+              urlList:
+              - https://example.com/okf/index.md
+      responses:
+        '202':
+          description: '{ ok, estado, recebidos, chave_em }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    description: The submission was queued.
+                  estado:
+                    type: string
+                    description: 'Always `pendente`: the key has not been checked yet.'
+                  recebidos:
+                    type: integer
+                    description: How many distinct URLs entered the queue.
+                  chave_em:
+                    type: string
+                    description: Where we will look for the key file. Check it if you are unsure.
+                required:
+                - ok
+                - estado
+                - recebidos
+                - chave_em
+        '400':
+          description: Malformed body, `host`/`key` invalid or `urlList` missing.
+        '422':
+          description: A URL is not https, is not .md, or does not belong to `host` — `keyLocation` on another host too.
+        '429':
+          description: This host reached 200 bundles for the UTC day.
+      tags:
+      - Okf
+  /api/okf/stats:
+    get:
+      operationId: index_stats
+      summary: Size of the index by provenance, and when it last changed
+      description: 'Returns: { total, by_origin, by_version[{v,n}], by_type[{v,n}], by_concepts[{v,n}], by_license[{v,n}], by_language[{v,n}], last_update }'
+      security: []
+      responses:
+        '200':
+          description: '{ total, by_origin, by_version[{v,n}], by_type[{v,n}], by_concepts[{v,n}], by_license[{v,n}], by_language[{v,n}], last_update }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexStats'
+      tags:
+      - Okf
 components:
+  schemas:
+    IndexStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Live bundles in the index.
+        by_origin:
+          type: object
+          description: '`{github, domain}`: live bundles found by the sweep and submitted by domains.'
+        by_version:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faceta'
+          description: Live bundles per declared `okf_version`, most common first (up to 12).
+        by_type:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faceta'
+          description: Declared root types, up to 12; roots need not declare a type.
+        by_concepts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faceta'
+          description: Root entry counts in bands 0, 1-5, 6-20, 21-100, 101+.
+        by_license:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faceta'
+          description: Repository licenses, up to 12; absent license is unknown.
+        by_language:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faceta'
+          description: Live bundles per repository language, most common first (up to 12); domain bundles have none.
+        last_update:
+          type: string
+          description: Newest `updated_at` among live bundles, `YYYY-MM-DD HH:MM:SS` UTC.
+          nullable: true
+      required:
+      - total
+      - by_origin
+      - by_version
+      - by_type
+      - by_concepts
+      - by_license
+      - by_language
+      - last_update
+      description: Size of the index by provenance, the facets a search can filter by, and when it last changed.
+    Faceta:
+      type: object
+      properties:
+        v:
+          type: string
+          description: The stored facet value or the concept-count band.
+        n:
+          type: integer
+          description: Live bundles with that value.
+      required:
+      - v
+      - n
+      description: One value of a facet and how many live bundles carry it.
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Guest mr_…, session sess_… or ADMIN_TOKEN.
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt

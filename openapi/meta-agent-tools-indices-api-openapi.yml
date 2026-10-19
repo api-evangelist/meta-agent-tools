@@ -1,0 +1,537 @@
+openapi: 3.2.0
+info:
+  title: Agentalog — Agent Auto Log Indices API
+  version: 1.0.0
+  description: 'Agent Auto Log: catalog of MCP servers, skills and plugins with an automatic change log, plus a monitor for what your agents install.'
+servers:
+- url: https://agentalog.com
+tags:
+- name: Indices
+paths:
+  /api/indices:
+    get:
+      operationId: get_api_indices
+      summary: 'The MCP indexes this catalog reads: credit, license, what each measures, counts…'
+      description: 'Each index measures something different — one completes an MCP handshake, another reads the last commit, another only discovers that a resource exists — so `mede` comes with every source and every signal. Collected once a day on our own host, raw data kept, and credited on every response: the data is theirs. `coleta.falhou` says the last round failed; the error text stays private.
+
+        Returns: { ok, indices[{id,nome,url,licenca,mede,cadencia_h,sinais,no_catalogo,por_estado,coleta,_links}], _links }'
+      security: []
+      parameters:
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ ok, indices[{id,nome,url,licenca,mede,cadencia_h,sinais,no_catalogo,por_estado,coleta,_links}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaDeIndices'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Indices
+  /api/indices/sinais:
+    get:
+      operationId: mcp_index_signals
+      summary: What each MCP index says about one listing of this catalog
+      description: 'A signal belongs to a listing only when it is the SAME object: the name in the official MCP registry, the exact remote endpoint URL or the GitHub `owner/repo`, in that order. A shared domain never matches — two servers on one host are different products. Up to 20 signals, one per index and record.
+
+        Returns: { ok, listing, count, sinais[{fonte,credito,mede,kind,nome,descricao,url,repo,estado,estado_na_fonte,motivo,acesso,detalhe,ficha_na_fonte,no_catalogo,medido_em,visto_em}], _links }'
+      security: []
+      parameters:
+      - name: listing
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Listing id from `/api/listings`.
+        example: mcp_com_stripe_mcp_b890f1d0
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ ok, listing, count, sinais[{fonte,credito,mede,kind,nome,descricao,url,repo,estado,estado_na_fonte,motivo,acesso,detalhe,ficha_na_fonte,no_catalogo,medido_em,visto_em}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SinaisDoRegistro'
+        '400':
+          description: '`listing` is missing.'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Indices
+  /api/indices/itens:
+    get:
+      operationId: mcp_index_search
+      summary: Browse the signals, including servers this catalog does not list yet
+      description: 'Newest change first. `casou=0` is what the indexes know and the catalog does not — the list to look at before submitting a server. Filters are AND''d. With `q`, `total` is the exact number of matches, including when the requested page is empty.
+
+        Returns: { ok, total, count, items[{fonte,credito,mede,kind,nome,descricao,url,repo,estado,estado_na_fonte,motivo,acesso,detalhe,ficha_na_fonte,no_catalogo,medido_em,visto_em}], _links }'
+      security: []
+      parameters:
+      - name: fonte
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - wellknown
+          - agent_tools
+          - nerq
+          - truespar
+          - neuronto
+          - paygent
+          - hultra
+        description: Only the signals of this index — `/api/indices` says what each one measures.
+      - name: estado
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - vivo
+          - fora
+          - parado
+          - abandonado
+          - apagado
+          - desconhecido
+        description: The state in this catalog's words.
+      - name: casou
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - '0'
+          - '1'
+        description: '`1` only signals matched to a listing, `0` only unmatched.'
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Substring of the name, the URL or the repository.
+        example: postgres
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+        description: Signals per page, 1–50.
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: Offset, capped at 50000.
+      - name: X-API-Pass
+        in: header
+        required: false
+        schema:
+          type: string
+        description: 'MAT-only private pass: mat_<32 random hex>_<64 random hex>. Generate and save before buying.'
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Optional retry key, up to 80 ASCII characters; same read for five minutes.
+      responses:
+        '200':
+          description: '{ ok, total, count, items[{fonte,credito,mede,kind,nome,descricao,url,repo,estado,estado_na_fonte,motivo,acesso,detalhe,ficha_na_fonte,no_catalogo,medido_em,visto_em}], _links }'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaDeSinais'
+        '401':
+          description: Invalid MAT pass.
+        '402':
+          description: Free allowance or MAT credits exhausted; buy a package.
+        '409':
+          description: Retry conflict or pending read.
+        '413':
+          description: Basic read exceeds 1 MiB.
+        '429':
+          description: Temporary reading capacity.
+        '503':
+          description: Origin or payment verification temporarily unavailable.
+      tags:
+      - Indices
+components:
+  schemas:
+    SinaisDoRegistro:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        listing:
+          type: string
+          description: The listing id asked for.
+        count:
+          type: integer
+          description: Signals returned.
+        sinais:
+          type: array
+          items:
+            $ref: '#/components/schemas/SinalDeIndice'
+          description: One per index and record, ordered by index.
+        _links:
+          type: object
+          description: '`indices`.'
+      required:
+      - ok
+      - listing
+      - count
+      - sinais
+      - _links
+      description: The signals of one listing.
+    ListaDeIndices:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        indices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Indice'
+          description: One per index.
+        _links:
+          type: object
+          description: '`self` and the `sinais` template.'
+      required:
+      - ok
+      - indices
+      - _links
+      description: The indexes, their credit and their last round.
+    PaginaDeSinais:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          description: Always `true`.
+        total:
+          type: integer
+          description: Signals matching the filters.
+        count:
+          type: integer
+          description: Signals on this page.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SinalDeIndice'
+          description: Newest change first.
+        _links:
+          type: object
+          description: '`self` and `indices`.'
+      required:
+      - ok
+      - total
+      - count
+      - items
+      - _links
+      description: A page of signals.
+    Indice:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Index id.
+          enum:
+          - wellknown
+          - agent_tools
+          - nerq
+          - truespar
+          - neuronto
+          - paygent
+          - hultra
+        nome:
+          type: string
+          description: Index name.
+        url:
+          type: string
+          description: Index site.
+        licenca:
+          type: string
+          description: License or terms under which we use it.
+        mede:
+          type: string
+          description: What this index observes — read it before comparing two indexes.
+        cadencia_h:
+          type: integer
+          description: Hours between collection rounds.
+        sinais:
+          type: integer
+          description: Signals stored from this index.
+        no_catalogo:
+          type: integer
+          description: How many of them matched a listing.
+        por_estado:
+          type: object
+          description: Signal count per state, every state present (zero included).
+        coleta:
+          allOf:
+          - $ref: '#/components/schemas/RodadaDeIndice'
+          description: The last round; `null` before the first.
+          nullable: true
+        _links:
+          type: object
+          description: '`itens`: the signals of this index.'
+      required:
+      - id
+      - nome
+      - url
+      - licenca
+      - mede
+      - cadencia_h
+      - sinais
+      - no_catalogo
+      - por_estado
+      - coleta
+      - _links
+      description: One MCP index this catalog reads.
+    CreditoDeIndice:
+      type: object
+      properties:
+        nome:
+          type: string
+          description: Index name.
+        url:
+          type: string
+          description: Index site.
+        licenca:
+          type: string
+          description: License or terms under which we use it.
+      required:
+      - nome
+      - url
+      - licenca
+      description: Who measured it and under which terms. It travels with every signal because the data is theirs.
+    SinalDeIndice:
+      type: object
+      properties:
+        fonte:
+          type: string
+          description: Index id.
+          enum:
+          - wellknown
+          - agent_tools
+          - nerq
+          - truespar
+          - neuronto
+          - paygent
+          - hultra
+        credito:
+          allOf:
+          - $ref: '#/components/schemas/CreditoDeIndice'
+          description: Credit and license.
+          nullable: true
+        mede:
+          type: string
+          description: What this index observes.
+          nullable: true
+        kind:
+          type: string
+          description: 'What the item is at the source: `mcp`, `a2a`, `skill`, `repo`, `x402`…'
+        nome:
+          type: string
+          description: Name at the source.
+        descricao:
+          type: string
+          description: Description at the source.
+          nullable: true
+        url:
+          type: string
+          description: Endpoint or resource URL.
+          nullable: true
+        repo:
+          type: string
+          description: GitHub `owner/repo`, lowercase.
+          nullable: true
+        estado:
+          type: string
+          description: 'What the index measured, in this catalog''s words: `vivo` answered, `fora` did not, `parado`/`abandonado` repository without recent commits, `apagado` repository deleted, `desconhecido` not measured.'
+          enum:
+          - vivo
+          - fora
+          - parado
+          - abandonado
+          - apagado
+          - desconhecido
+        estado_na_fonte:
+          type: string
+          description: The state in the index's own words.
+          nullable: true
+        motivo:
+          type: string
+          description: Why, when the index says.
+          nullable: true
+        acesso:
+          type: string
+          description: Access or payment model, when the index says.
+          nullable: true
+        detalhe:
+          type: object
+          description: Extra measurements of this index (tier, tool count, reputation…).
+        ficha_na_fonte:
+          type: string
+          description: The record at the index.
+          nullable: true
+        no_catalogo:
+          type: object
+          description: '`{ id, casou_por }` when it matched a listing.'
+          nullable: true
+        medido_em:
+          type: string
+          description: When the index measured it, when it says.
+          nullable: true
+        visto_em:
+          type: string
+          description: When this signal last changed on our side (ISO 8601).
+      required:
+      - fonte
+      - credito
+      - mede
+      - kind
+      - nome
+      - descricao
+      - url
+      - repo
+      - estado
+      - estado_na_fonte
+      - motivo
+      - acesso
+      - detalhe
+      - ficha_na_fonte
+      - no_catalogo
+      - medido_em
+      - visto_em
+      description: What one index measured about one server, agent, service or repository.
+    RodadaDeIndice:
+      type: object
+      properties:
+        rodada_em:
+          type: string
+          description: When the round ended (ISO 8601).
+        itens:
+          type: integer
+          description: Items read in the round.
+        novos:
+          type: integer
+          description: Items seen for the first time.
+        mudados:
+          type: integer
+          description: Items whose raw record changed.
+        falhou:
+          type: boolean
+          description: '`true` when the round failed; the next one is already scheduled.'
+        http:
+          type: integer
+          description: HTTP status of the last answer, when there was one.
+          nullable: true
+        proxima_em:
+          type: string
+          description: When the next round is due (ISO 8601).
+          nullable: true
+      required:
+      - rodada_em
+      - itens
+      - novos
+      - mudados
+      - falhou
+      - http
+      - proxima_em
+      description: The last collection round of one index on our host.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Guest mr_… or ADMIN_TOKEN; the account is a cookie, never a bearer.
+    monitorReader:
+      type: http
+      scheme: bearer
+      bearerFormat: mmq_…
+      description: Read one private project's event cursor only. No ingestion, approval or purchase. Do not mix with cookies.
+    monitorInstallation:
+      type: http
+      scheme: bearer
+      bearerFormat: mmi_…
+      description: One private installation and project. No approval, purchase or credential issuance.
+    monitorNotices:
+      type: http
+      scheme: bearer
+      bearerFormat: mmn_…
+      description: Product notice service only. Reserve, start and confirm; no account or installation authority.
+    x402:
+      type: apiKey
+      in: header
+      name: X-PAYMENT
+      description: x402 payment per call (USDC on Base). Call without it to get the 402 with `accepts`; sign the authorization and repeat with the base64 payment in X-PAYMENT.
+    globalAccount:
+      type: apiKey
+      in: cookie
+      name: __Host-mm-auth
+      description: Global session in the product's HttpOnly cookie; writes require exact Origin and X-CSRF-Token.
+    contaChaveApi:
+      type: http
+      scheme: bearer
+      bearerFormat: mmk_…
+      description: 'Account API key: `Authorization: Bearer mmk_…` or `X-Api-Key: mmk_…`. Created on the account page (API keys), valid only in the product where it was created; it acts as the account (or the organization that owns it).'
+    carteiraAgente:
+      type: http
+      scheme: bearer
+      bearerFormat: mmw_…
+      description: 'Wallet credential of an agent without an account (`Authorization: Bearer mmw_…`, 30 days, this product only): POST /api/auth/wallet/agent/start, sign the message with the wallet, POST /api/auth/wallet/agent/token. The owner is `x402:<address>`.'
+x-service-info:
+  categories:
+  - ai-agents
+  - mcp
+  - directory
+  docs:
+    homepage: https://agentalog.com/
+    apiReference: https://agentalog.com/developers
+    llms: https://agentalog.com/llms.txt
