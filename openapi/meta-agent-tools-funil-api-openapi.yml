@@ -202,3 +202,9 @@ x-service-info:
     homepage: https://agentalog.com/
     apiReference: https://agentalog.com/developers
     llms: https://agentalog.com/llms.txt
+x-provenance:
+  method: harvested
+  publisher: Meta Agent Tools
+  source: https://agentalog.com/openapi.json
+  note: split by refine-openapis from the provider's own published document, verified by fetch (openapi/_original/*.fetch.json);
+    stamped by stamp-openapi-provenance.py (roadmap#793)
